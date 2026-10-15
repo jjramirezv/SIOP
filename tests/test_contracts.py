@@ -123,8 +123,10 @@ def test_health_and_planned_route_status():
         assert health.status_code == 200
         assert health.json() == {'status': 'ok', 'service': 'SIOP API', 'contract_version': '1.0.0'}
         assert client.get('/docs').status_code == 200
-        assert client.post('/api/v1/analyses', json={}).status_code == 404
-        assert '/api/v1/analyses' not in client.get('/openapi.json').json()['paths']
+        request = read_json('contracts/examples/analysis-request.json')
+        assert client.post('/api/v1/analyses', json=request).status_code == 200
+        assert '/api/v1/analyses' in client.get('/openapi.json').json()['paths']
+        assert client.post('/api/v1/assistant/messages', json={}).status_code == 404
         cors = client.options('/api/v1/health', headers={
             'Origin': 'http://localhost:5173', 'Access-Control-Request-Method': 'GET',
         })
@@ -168,7 +170,7 @@ def test_exported_contract_resolves_references_and_marks_future_routes():
     assert len(document['paths']) == 5
     assert document['paths']['/api/v1/health']['get']['x-implementation-status'] == 'implemented'
     for path, operations in document['paths'].items():
-        if path.endswith('/health'):
+        if path.endswith('/health') or path.endswith('/analyses'):
             continue
         assert operations['post']['x-implementation-status'] == 'planned'
 

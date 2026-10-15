@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
+from app.domain.models import CalculationError
+from app.routes.analyses import router as analyses_router
 from app.routes.health import router as health_router
 from app.schemas.common import ErrorDetail, ErrorResponse, FieldIssue
 
@@ -11,8 +13,8 @@ from app.schemas.common import ErrorDetail, ErrorResponse, FieldIssue
 settings = get_settings()
 app = FastAPI(
     title=f'{settings.app_name} API',
-    version='0.1.0',
-    description='Base operativa de SIOP. Los contratos de análisis y asistente están en contracts/.',
+    version='0.2.0',
+    description='SIOP: salud y análisis de descuentos operativos. El asistente sigue planificado.',
 )
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +24,16 @@ app.add_middleware(
     allow_headers=['Content-Type'],
 )
 app.include_router(health_router, prefix=settings.api_prefix)
+app.include_router(analyses_router, prefix=settings.api_prefix)
+
+
+@app.exception_handler(CalculationError)
+async def calculation_error_handler(request: Request, exc: CalculationError):
+    response = ErrorResponse(error=ErrorDetail(
+        code='VALIDATION_ERROR', message='No se pudo calcular con los valores indicados.',
+        details=[FieldIssue(field=exc.field, message=str(exc))],
+    ))
+    return JSONResponse(status_code=422, content=response.model_dump(mode='json'))
 
 
 @app.exception_handler(RequestValidationError)

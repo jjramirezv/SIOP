@@ -11,6 +11,7 @@ PROJECT_ROOT = API_ROOT.parents[1]
 sys.path.insert(0, str(API_ROOT))
 
 from app.routes.health import router as health_router
+from app.routes.analyses import router as analyses_router
 from app.schemas.analysis import AnalysisResponse
 from app.schemas.assistant import AssistantRequest, AssistantResponse, TranscriptionResponse
 from app.schemas.common import ErrorResponse
@@ -21,15 +22,13 @@ def generate_contract() -> dict:
     contract = FastAPI(
         title='SIOP - Contrato de integración', version='1.0.0',
         description=(
-            'Contrato acordado para frontend y backend. Solo health está implementado. '
-            'Las demás operaciones están planificadas y NO están montadas en app.main.'
+            'Contrato acordado para frontend y backend. Salud y análisis están implementados. '
+            'Las operaciones del asistente están planificadas y NO están montadas en app.main.'
         ),
     )
     contract.include_router(health_router, prefix='/api/v1')
+    contract.include_router(analyses_router, prefix='/api/v1')
     errors = {422: {'model': ErrorResponse, 'description': 'Datos inválidos.'}}
-
-    def analysis(body: AnalysisRequest) -> AnalysisResponse:
-        raise NotImplementedError('Operación de contrato; no es una implementación.')
 
     def message(body: AssistantRequest) -> AssistantResponse:
         raise NotImplementedError('Operación de contrato; no es una implementación.')
@@ -42,7 +41,6 @@ def generate_contract() -> dict:
         raise NotImplementedError('Operación de contrato; no es una implementación.')
 
     descriptions = [
-        ('/analyses', analysis, AnalysisResponse, 'Calcular alternativas de compra.'),
         ('/assistant/messages', message, AssistantResponse, 'Interpretar texto o explicar un escenario.'),
         ('/assistant/extract-image', image, AssistantResponse,
          'Interpretar una imagen. draft es JSON serializado del borrador opcional.'),
