@@ -533,11 +533,52 @@ Los mocks sirven para desarrollar y probar, no para afirmar que una función rea
 
 ## 13. Preparación para ejecutar el proyecto
 
-Esta sección se completará en S01-08 con los comandos realmente probados. Aún no se afirma que exista una instalación funcional del repositorio propuesto.
+### Frontend — Rubén
+
+Base React/TypeScript/Vite en `apps/web/`. Entorno utilizado: **Node.js 22.11.0** y **npm 10.9.0**. Las versiones de dependencias están fijadas en `package.json` y `package-lock.json`.
+
+Desde la raíz del repositorio, en PowerShell:
+
+```powershell
+cd apps/web
+npm install --cache .npm-cache --no-audit --no-fund
+if (-not (Test-Path -LiteralPath .env)) {
+    Copy-Item -LiteralPath .env.example -Destination .env
+}
+npm run dev
+```
+
+La copia inicial conserva un `.env` que ya exista. Su configuración de ejemplo es:
+
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_USE_MOCKS=true
+```
+
+Abrir la dirección que Vite muestra en la terminal, normalmente **http://localhost:5173/**. Mantener esa terminal abierta; `npm run build` genera archivos para producción y no inicia un servidor. Si el puerto está ocupado, Vite puede ofrecer otro. Para detenerlo, usar `Ctrl+C`.
+
+En otra terminal de PowerShell, desde la raíz del repositorio:
+
+```powershell
+cd apps/web
+npm run build
+npm test
+```
+
+`npm run build` ejecuta `tsc -b` y luego Vite; la salida de producción queda en `apps/web/dist/`. Las pruebas verifican los casos de referencia, formularios, resultados, borradores y liberación del micrófono mediante dobles de navegador y servicios.
+
+Verificación de esta entrega: instalación y configuración comprobadas, servidor de desarrollo operativo, build generado sin errores ni avisos de TypeScript y **106 pruebas aprobadas** en **7 archivos**. Vite/Rollup muestra dos avisos sobre anotaciones de comentarios de la dependencia Zod; no son avisos de TypeScript ni impiden generar el bundle.
+
+El modo inicial se configura con `VITE_USE_MOCKS`; el encabezado permite alternar entre **Modo Simulado (Mocks)** y **API Real (FastAPI)**. Para iniciar directamente contra el backend, cambiar `VITE_USE_MOCKS=false` y reiniciar Vite. La API debe estar disponible en la dirección configurada y permitir el origen del frontend. Las claves de IA permanecen en el servidor.
+
+En modo simulado se utilizan los cuatro casos precalculados y respuestas de ejemplo del asistente. Otros escenarios requieren la API real. La captura de voz requiere un navegador con MediaRecorder, localhost/HTTPS y permiso del micrófono; siempre existen carga de audio y simulación de prueba como alternativas. Se libera el micrófono al detener, cancelar, cambiar de pestaña o cerrar el asistente. La simulación prepara texto identificado como ejemplo y no representa una transcripción real.
+
+El guion de Rubén está en [docs/guion-demostracion.md](docs/guion-demostracion.md). El frontend no declara como comprobados el micrófono físico, los servicios reales de IA, la integración completa con FastAPI ni WinQSB: esas evidencias y la aceptación conjunta siguen pendientes.
+
+### Backend e integración — Jelibeth y ambos
 
 - Jelibeth documenta entorno Python, instalación, variables, arranque y pruebas del backend.
-- Ruben documenta entorno Node, instalación, dirección de API, arranque y build del frontend.
-- Ambos comprueban una ejecución completa desde las instrucciones.
+- Ambos comprueban una ejecución completa con los servicios reales desde sus instrucciones.
 - Las claves reales se guardan fuera del control de versiones; los ejemplos de entorno no incluyen secretos.
 
 ## 14. Referencias técnicas

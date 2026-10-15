@@ -1,0 +1,71 @@
+# Skills, instrucciones y configuración local de agentes
+.agents/
+.agent/
+.codex/
+.claude/
+.cursor/
+.windsurf/
+.clinerules/
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+GEMINI.md
+SKILL.md
+CONTEXTO_AGENTE*.md
+skills-lock.json
+.cursorrules
+.windsurfrules
+.mcp.json
+.github/copilot-instructions.md
+.github/instructions/
+
+# Dependencias de Node y cachés locales (conservar package-lock.json)
+node_modules/
+.npm-cache/
+.npm/
+.pnpm-store/
+.vite/
+.cache/
+.turbo/
+
+# Compilación y archivos generados
+dist/
+build/
+*.tsbuildinfo
+
+# Configuración privada (conservar ejemplos sin credenciales)
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
+!.env.sample
+
+# Entornos virtuales, bytecode y cachés de Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Resultados de pruebas y cobertura
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Logs y archivos locales del editor o sistema operativo
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
