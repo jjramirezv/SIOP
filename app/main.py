@@ -9,12 +9,16 @@ from app.routes.analyses import router as analyses_router
 from app.routes.health import router as health_router
 from app.schemas.common import ErrorDetail, ErrorResponse, FieldIssue
 
+from app.routes.assistant import router as assistant_router
 
 settings = get_settings()
 app = FastAPI(
     title=f'{settings.app_name} API',
-    version='0.2.0',
-    description='SIOP: salud y análisis de descuentos operativos. El asistente sigue planificado.',
+    version='0.3.0',
+    description=(
+        "SIOP: optimización de pedidos y asistente por texto, fotografía "
+        "y transcripción de grabaciones mediante Gemini."
+    ),
 )
 app.add_middleware(
     CORSMiddleware,
@@ -25,7 +29,7 @@ app.add_middleware(
 )
 app.include_router(health_router, prefix=settings.api_prefix)
 app.include_router(analyses_router, prefix=settings.api_prefix)
-
+app.include_router(assistant_router, prefix=settings.api_prefix)
 
 @app.exception_handler(CalculationError)
 async def calculation_error_handler(request: Request, exc: CalculationError):

@@ -2,15 +2,15 @@
 import json
 from pathlib import Path
 import sys
-from typing import Annotated
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI
 
 API_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = API_ROOT.parents[1]
 sys.path.insert(0, str(API_ROOT))
 
 from app.routes.health import router as health_router
+from app.routes.assistant import router as assistant_router
 from app.routes.analyses import router as analyses_router
 from app.schemas.analysis import AnalysisResponse
 from app.schemas.assistant import AssistantRequest, AssistantResponse, TranscriptionResponse
@@ -22,42 +22,18 @@ def generate_contract() -> dict:
     contract = FastAPI(
         title='SIOP - Contrato de integración', version='1.0.0',
         description=(
-            'Contrato acordado para frontend y backend. Salud y análisis están implementados. '
-            'Las operaciones del asistente están planificadas y NO están montadas en app.main.'
+            'Contrato de integración de las rutas implementadas: salud, análisis, '
+            'asistente por texto/fotografía y transcripción mediante Gemini.'
         ),
     )
     contract.include_router(health_router, prefix='/api/v1')
     contract.include_router(analyses_router, prefix='/api/v1')
-    errors = {422: {'model': ErrorResponse, 'description': 'Datos inválidos.'}}
-
-    def message(body: AssistantRequest) -> AssistantResponse:
-        raise NotImplementedError('Operación de contrato; no es una implementación.')
-
-    def image(file: Annotated[UploadFile, File()],
-              draft: Annotated[str | None, Form()] = None) -> AssistantResponse:
-        raise NotImplementedError('Operación de contrato; no es una implementación.')
-
-    def transcribe(file: Annotated[UploadFile, File()]) -> TranscriptionResponse:
-        raise NotImplementedError('Operación de contrato; no es una implementación.')
-
-    descriptions = [
-        ('/assistant/messages', message, AssistantResponse, 'Interpretar texto o explicar un escenario.'),
-        ('/assistant/extract-image', image, AssistantResponse,
-         'Interpretar una imagen. draft es JSON serializado del borrador opcional.'),
-        ('/assistant/transcribe', transcribe, TranscriptionResponse, 'Transcribir un mensaje grabado.'),
-    ]
-    for path, endpoint, response_model, description in descriptions:
-        contract.add_api_route(
-            '/api/v1' + path, endpoint, methods=['POST'],
-            response_model=response_model, responses=errors,
-            description=description + ' Estado: planificado, aún no implementado.',
-            openapi_extra={'x-implementation-status': 'planned'},
-        )
+    contract.include_router(assistant_router, prefix='/api/v1')
 
     document = contract.openapi()
     document['servers'] = [{'url': 'http://127.0.0.1:8000'}]
     document['paths']['/api/v1/health']['get']['x-implementation-status'] = 'implemented'
-    for path in ('/api/v1/assistant/extract-image', '/api/v1/assistant/transcribe'):
+    for path in ('/api/v1/assistant/messages', '/api/v1/assistant/extract-image', '/api/v1/assistant/transcribe'):
         operation = document['paths'][path]['post']
         for status, description in {
             '413': 'Archivo demasiado grande.', '415': 'Formato no admitido.',

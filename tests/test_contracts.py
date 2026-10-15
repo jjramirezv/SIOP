@@ -117,7 +117,7 @@ def test_candidate_cannot_cross_discount_boundary():
         AnalysisResponse.model_validate(response)
 
 
-def test_health_and_planned_route_status():
+def test_health_and_implemented_route_status():
     with TestClient(app) as client:
         health = client.get('/api/v1/health')
         assert health.status_code == 200
@@ -126,7 +126,7 @@ def test_health_and_planned_route_status():
         request = read_json('contracts/examples/analysis-request.json')
         assert client.post('/api/v1/analyses', json=request).status_code == 200
         assert '/api/v1/analyses' in client.get('/openapi.json').json()['paths']
-        assert client.post('/api/v1/assistant/messages', json={}).status_code == 404
+        assert client.post('/api/v1/assistant/messages', json={}).status_code == 422
         cors = client.options('/api/v1/health', headers={
             'Origin': 'http://localhost:5173', 'Access-Control-Request-Method': 'GET',
         })
@@ -151,7 +151,7 @@ def test_field_error_contract_matches_http_handler():
     assert 'input' not in response.text
 
 
-def test_exported_contract_resolves_references_and_marks_future_routes():
+def test_exported_contract_resolves_references_and_marks_implemented_routes():
     document = read_json('contracts/openapi.json')
 
     def visit(node):
@@ -172,12 +172,21 @@ def test_exported_contract_resolves_references_and_marks_future_routes():
     for path, operations in document['paths'].items():
         if path.endswith('/health') or path.endswith('/analyses'):
             continue
-        assert operations['post']['x-implementation-status'] == 'planned'
+        assert operations['post']['x-implementation-status'] == 'implemented'
 
 
 def test_env_template_has_no_secret_value_and_env_is_ignored():
     template = (ROOT / '.env.example').read_text(encoding='utf-8')
-    line = next(line for line in template.splitlines() if line.startswith('OPENAI_API_KEY='))
-    assert line == 'OPENAI_API_KEY='
+    line = next(line for line in template.splitlines() if line.startswith('GEMINI_API_KEY='))
+    assert line == 'GEMINI_API_KEY='
     ignored = (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines()
     assert '.env' in ignored and 'venv/' in ignored and '!.env.example' in ignored
+
+
+def test_exported_contract_matches_live_route_identifiers():
+    exported = read_json('contracts/openapi.json')
+    live = app.openapi()
+    assert set(exported['paths']) == set(live['paths'])
+    for path, operations in live['paths'].items():
+        for method, operation in operations.items():
+            assert exported['paths'][path][method]['operationId'] == operation['operationId']

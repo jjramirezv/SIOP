@@ -21,14 +21,15 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
         'http://localhost:5173', 'http://127.0.0.1:5173',
     ]
-    openai_api_key: SecretStr | None = None
-    openai_text_model: str = ''
-    openai_transcription_model: str = ''
+    gemini_api_key: SecretStr | None = None
+    gemini_text_model: str = ''
 
-    @field_validator('openai_api_key', mode='before')
+    @field_validator('gemini_api_key', mode='before')
     @classmethod
     def empty_key_is_unconfigured(cls, value):
-        return None if value == '' else value
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @field_validator('api_prefix')
     @classmethod
