@@ -1,16 +1,18 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
 import { DraftReviewCard } from '../src/features/assistant/DraftReviewCard';
-import { createDemoQuotation } from '../src/features/assistant/ImageExtractorUploader';
+import { createDemoQuotation } from './fixtures/demo-quotation';
 import { EXAMPLE_EXERCISE } from '../src/features/assistant/AssistantPanel';
-import { mockAssistantMessage, mockExtractImage, REFERENCE_CASES, resolveMockAnalysis } from '../src/mocks/reference-cases';
+import { mockAssistantMessage, mockExtractImage, REFERENCE_CASES, resolveMockAnalysis } from './fixtures/reference-cases';
 import { apiClient } from '../src/services/api-client';
 import type { AssistantResponse } from '../src/services/generated/types';
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); apiClient.setUseMocks(true); });
+beforeEach(() => { vi.spyOn(apiClient, 'checkHealth').mockResolvedValue({ status: 'ok', ai_available: false }); });
+
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('Revisión humana del borrador', () => {
   it('edita números sin mutar la propuesta original y aplica solo con confirmación explícita', async () => {
@@ -61,7 +63,7 @@ describe('Revisión humana del borrador', () => {
 
 describe('Asistente integrado y protección del ingreso manual', () => {
   beforeEach(() => {
-    apiClient.setUseMocks(true);
+
     vi.spyOn(apiClient, 'runAnalysis').mockImplementation(async (request) => resolveMockAnalysis(request));
     vi.spyOn(apiClient, 'sendAssistantMessage').mockImplementation(async (payload) => mockAssistantMessage(payload));
     vi.spyOn(apiClient, 'extractFromImage').mockImplementation(async (file, note) => mockExtractImage(file, note));
@@ -73,7 +75,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
 
   async function openAssistant() {
     render(<App />);
-    await screen.findByText('RECOMENDACIÓN ÓPTIMA VERIFICADA');
+    await screen.findByText('Compra recomendada');
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Asistente IA (Texto, Foto y Voz)' }));
     const panel = screen.getByRole('complementary', { name: 'Asistente inteligente' });
@@ -120,7 +122,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     await user.click(assistant.getByRole('button', { name: 'Enviar' }));
     expect(assistant.getByText('Interpretando datos...')).toBeDefined();
     const product = screen.getByLabelText('¿Qué producto estás comprando?') as HTMLInputElement;
-    await user.clear(product); await user.type(product, 'Producto confirmado manualmente');
+    fireEvent.change(product, { target: { value: 'Producto confirmado manualmente' } });
     await act(async () => resolveMessage({ reply_message: 'Revisa el costo de mantenimiento.', proposed_data: { holding_cost_value: 10 }, missing_fields: [], fields_to_review: ['holding_cost_value'], suggested_action: 'propose_data' }));
     await user.click(assistant.getByRole('button', { name: 'Aplicar datos al formulario y calcular' }));
     await waitFor(() => expect(apiClient.runAnalysis).toHaveBeenLastCalledWith({ ...REFERENCE_CASES.ily.request, product_name: 'Producto confirmado manualmente' }));
@@ -134,7 +136,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     await user.click(assistant.getByRole('button', { name: 'Enviar' }));
     const alert = await assistant.findByRole('alert');
     expect(alert.textContent).toContain('Error del servicio de IA — Puedes seguir usando el formulario manual');
-    await user.click(screen.getByRole('button', { name: 'Calcular compra óptima' }));
+    await user.click(screen.getByRole('button', { name: 'Calcular mejor compra' }));
     await waitFor(() => expect(apiClient.runAnalysis).toHaveBeenCalledTimes(2));
     await user.click(assistant.getByRole('button', { name: 'Reintentar mensaje' }));
     expect(await assistant.findByRole('region', { name: 'Borrador revisable del asistente' })).toBeDefined();
@@ -161,7 +163,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     expect(assistant.getByAltText('Vista previa de la cotización seleccionada')).toBeDefined();
     await user.type(assistant.getByLabelText('Contexto adicional de la foto'), EXAMPLE_EXERCISE);
     await user.click(assistant.getByRole('button', { name: 'Extraer datos de la fotografía' }));
-    expect(apiClient.extractFromImage).toHaveBeenCalledWith(photo, EXAMPLE_EXERCISE);
+    expect(apiClient.extractFromImage).toHaveBeenCalledWith(photo, EXAMPLE_EXERCISE, REFERENCE_CASES.ily.request);
     expect(await assistant.findByRole('region', { name: 'Borrador revisable del asistente' })).toBeDefined();
     expect(apiClient.runAnalysis).toHaveBeenCalledTimes(1);
     await user.upload(assistant.getByLabelText('Selecciona una fotografía o cotización'), new File(['otra'], 'otra.png', { type: 'image/png' }));
@@ -178,7 +180,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     expect(drawing.fillText).toHaveBeenCalledWith('PEN 19.20', expect.any(Number), expect.any(Number));
     const { user, assistant } = await openAssistant();
     await user.click(assistant.getByRole('tab', { name: 'Fotografía' }));
-    await user.click(assistant.getByRole('button', { name: 'Cotización de prueba (Demo)' }));
+    await user.upload(assistant.getByLabelText('Selecciona una fotografía o cotización'), file);
     await assistant.findByText('cotizacion-demo.png');
     await user.click(assistant.getByRole('button', { name: 'Extraer datos de la fotografía' }));
     const draft = await assistant.findByRole('region', { name: 'Borrador revisable del asistente' });
@@ -193,7 +195,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     await user.upload(assistant.getByLabelText('Selecciona una fotografía o cotización'), new File(['imagen'], 'cotizacion-demo.png', { type: 'image/png' }));
     await user.click(assistant.getByRole('button', { name: 'Extraer datos de la fotografía' }));
     expect((await assistant.findByRole('alert')).textContent).toContain('No pudimos leer la cotización.');
-    expect((screen.getByRole('button', { name: 'Calcular compra óptima' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Calcular mejor compra' }) as HTMLButtonElement).disabled).toBe(false);
     await user.click(assistant.getByRole('button', { name: 'Extraer datos de la fotografía' }));
     expect(await assistant.findByRole('region', { name: 'Borrador revisable del asistente' })).toBeDefined();
     expect(assistant.queryByRole('alert')).toBeNull();

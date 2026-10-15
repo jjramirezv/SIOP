@@ -1,0 +1,30 @@
+{
+  "product_name": "Caso Wohl - Distribución Mayorista",
+  "currency": "USD",
+  "demand": {
+    "value": 5000,
+    "period": "year"
+  },
+  "order_cost": 49,
+  "holding_cost": {
+    "mode": "percentage",
+    "value": 20,
+    "period": "year"
+  },
+  "days_per_year": 365,
+  "current_order_quantity": 700,
+  "discount_tiers": [
+    {
+      "min_quantity": 0,
+      "unit_price": 5
+    },
+    {
+      "min_quantity": 1000,
+      "unit_price": 4.8
+    },
+    {
+      "min_quantity": 2000,
+      "unit_price": 4.75
+    }
+  ]
+}

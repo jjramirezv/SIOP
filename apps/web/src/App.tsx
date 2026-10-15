@@ -1,23 +1,19 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { Boxes, Loader2, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Loader2, Sparkles } from 'lucide-react';
 import { clsx } from 'clsx';
-import { REFERENCE_CASES } from './mocks/reference-cases';
-import type { ReferenceCaseId } from './mocks/reference-cases';
-import { apiClient } from './services/api-client';
+import { REFERENCE_CASES } from './features/inventory-form/reference-cases';
+import type { ReferenceCaseId } from './features/inventory-form/reference-cases';
+import { ApiClientError, apiClient } from './services/api-client';
 import type { AnalysisRequest, AnalysisResponse } from './services/generated/types';
 import { CaseSelectorBar } from './features/inventory-form/CaseSelectorBar';
 import { InventoryForm } from './features/inventory-form/InventoryForm';
+import type { FormSection } from './features/inventory-form/InventoryForm';
 import { analysisFormSchema } from './features/inventory-form/schema';
 import { StaleResultsBanner } from './features/results/StaleResultsBanner';
 import { RecommendationHeroCard } from './features/results/RecommendationHeroCard';
-import { SensitivityAndComparisonBar } from './features/results/SensitivityAndComparisonBar';
-import { ProcedureAccordion } from './features/results/ProcedureAccordion';
+import { DecisionWorkspace } from './features/results/DecisionWorkspace';
 import { AssistantPanel } from './features/assistant/AssistantPanel';
 
-const AlternativesComparisonSection = lazy(() => import('./features/results/AlternativesComparisonSection')
-  .then((module) => ({ default: module.AlternativesComparisonSection })));
-
-type DataMode = 'mock' | 'real';
 
 export function App() {
   const [activeCase, setActiveCase] = useState<ReferenceCaseId | null>('ily');
@@ -25,12 +21,13 @@ export function App() {
   const [draftRequest, setDraftRequest] = useState<AnalysisRequest>(() => structuredClone(REFERENCE_CASES.ily.request));
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [analyzedRequest, setAnalyzedRequest] = useState<AnalysisRequest | null>(null);
-  const [mode, setMode] = useState<DataMode>(() => apiClient.useMocks ? 'mock' : 'real');
-  const [resultMode, setResultMode] = useState<DataMode>(mode);
+  const [connection, setConnection] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [formDirty, setFormDirty] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [focusSection, setFocusSection] = useState<{ section: FormSection; revision: number }>();
   const assistantTrigger = useRef<HTMLButtonElement>(null);
   const mounted = useRef(false);
   const sequence = useRef(0);
@@ -44,7 +41,6 @@ export function App() {
       return;
     }
     const payload = structuredClone(parsed.data);
-    const requestedMode: DataMode = apiClient.useMocks ? 'mock' : 'real';
     const currentSequence = ++sequence.current;
     setLoading(true);
     setError('');
@@ -53,10 +49,11 @@ export function App() {
       if (!mounted.current || currentSequence !== sequence.current) return;
       setResult(response);
       setAnalyzedRequest(payload);
-      setResultMode(requestedMode);
+      setConnection('online');
       setFormDirty(false);
     } catch (cause) {
       if (!mounted.current || currentSequence !== sequence.current) return;
+      if (cause instanceof ApiClientError && (cause.code === 'network' || cause.code === 'timeout')) setConnection('offline');
       setError(cause instanceof Error ? cause.message : 'No pudimos completar el análisis. Vuelve a intentarlo.');
       setFormDirty(true);
     } finally {
@@ -93,12 +90,15 @@ export function App() {
     void analyze(updated);
   }
 
-  function changeMode(nextMode: DataMode) {
-    apiClient.setUseMocks(nextMode === 'mock');
-    setMode(nextMode);
-    setFormDirty(true);
-    void analyze(draftRequest);
-  }
+  const refreshHealth = useCallback(async () => {
+    setConnection('checking');
+    try {
+      const health = await apiClient.checkHealth();
+      if (mounted.current) { setConnection('online'); setAiAvailable(health.ai_available); }
+    } catch { if (mounted.current) { setConnection('offline'); setAiAvailable(null); } }
+  }, []);
+
+  useEffect(() => { void refreshHealth(); }, [refreshHealth]);
 
   function applyAssistantDraft(editedDraft: Partial<AnalysisRequest>): boolean {
     const presentValues = Object.fromEntries(Object.entries(editedDraft).filter(([, value]) => value !== undefined));
@@ -108,63 +108,47 @@ export function App() {
     return true;
   }
 
+  function editSection(section: FormSection) {
+    setFocusSection((previous) => ({ section, revision: (previous?.revision ?? 0) + 1 }));
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900">
-      <header className="sticky top-0 z-30 h-16 bg-white/95 backdrop-blur border-b border-slate-200 px-4 lg:px-8 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <Boxes aria-hidden="true" size={24} className="hidden shrink-0 text-slate-900 sm:block" />
-          <div className="min-w-0">
-            <p className="font-bold tracking-tight">SIOP</p>
-            <p className="hidden truncate text-xs text-slate-500 md:block">Optimización de Pedidos con Rompimiento de Precios</p>
-          </div>
+    <div className="decision-app">
+      <a href="#decision-main" className="desk-skip-link">Saltar al análisis</a>
+      <header className="desk-header">
+        <div className="desk-brand">
+          <span className="desk-wordmark">SIOP</span>
+          <div className="desk-brand-description"><h1>Mesa de decisión</h1><p>Decide hoy tu mejor compra de inventario</p></div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <label htmlFor="data-mode" className="sr-only">Modo de datos</label>
-          <select id="data-mode" value={mode} onChange={(event) => changeMode(event.target.value as DataMode)} disabled={loading}
-            className="max-w-[128px] rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs text-slate-900 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-600/20 disabled:opacity-50 sm:max-w-[205px]">
-            <option value="mock">Modo Simulado (Mocks)</option>
-            <option value="real">API Real (FastAPI)</option>
-          </select>
-          <span className={clsx('inline-flex rounded-full px-2.5 py-1 text-xs font-semibold', mode === 'mock' ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-900')}>
-            <span className="sm:hidden">{mode === 'mock' ? 'Demo' : 'Real'}</span><span className="hidden sm:inline">{mode === 'mock' ? 'Simulado' : 'API Real'}</span>
-          </span>
+        <div className="desk-header-actions">
+          <button type="button" onClick={() => void refreshHealth()} className={clsx('desk-mode', connection === 'online' ? 'is-real' : 'is-offline')} title="Comprobar conexión con la API" aria-label="Comprobar conexión con la API">
+            <span role="status">{connection === 'online' ? 'Motor conectado' : connection === 'checking' ? 'Conectando…' : 'API sin conexión'}</span>
+          </button>
           <button ref={assistantTrigger} type="button" onClick={() => setAssistantOpen((open) => !open)} aria-label="Asistente IA (Texto, Foto y Voz)" aria-expanded={assistantOpen} aria-controls="assistant-panel"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 p-2 text-xs font-semibold text-white hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 lg:px-3 cursor-pointer">
-            <Sparkles size={17} aria-hidden="true" /><span className="hidden lg:inline">Asistente IA (Texto, Foto y Voz)</span>
+            className="desk-ai-trigger">
+            <Sparkles size={18} aria-hidden="true" /><span>Asistente IA</span><i aria-hidden="true">✦</i>
           </button>
         </div>
       </header>
-      <div className="flex flex-col-reverse items-start xl:flex-row">
-      <main className="w-full min-w-0 flex-1 max-w-[1600px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-12 space-y-5">
-          <div>
-            <h1 id="inventory-title" className="text-2xl font-semibold tracking-tight">Planifica tu próxima compra</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Compara precios por volumen, revisa el costo anual y decide cuánto pedir con tus datos de ventas y almacenamiento.</p>
-          </div>
-          <CaseSelectorBar activeCase={activeCase} onSelectCase={selectCase} isLoading={loading} />
-        </div>
-        <section className="lg:col-span-5 space-y-5 min-w-0" aria-labelledby="inventory-title">
-          <InventoryForm defaultValues={defaultValues} onSubmit={(data) => void analyze(data)} onFormDirtyChange={onFormDirtyChange} onValuesChange={setDraftRequest} isLoading={loading} />
+      <main id="decision-main" className="desk-layout">
+        <section className="desk-inspector desk-glass" aria-label="Configurar el ejercicio">
+          <InventoryForm defaultValues={defaultValues} onSubmit={(data) => void analyze(data)} onFormDirtyChange={onFormDirtyChange} onValuesChange={setDraftRequest} isLoading={loading}
+            focusSection={focusSection} onQuickRecalculate={quickRecalculate}
+            caseSelector={<CaseSelectorBar activeCase={activeCase} onSelectCase={selectCase} isLoading={loading} />} />
         </section>
-        <section className="lg:col-span-7 space-y-6 min-w-0" aria-label="Resultados del análisis" aria-busy={loading}>
+        <section className="desk-results" aria-label="Resultados del análisis" aria-busy={loading}>
           <StaleResultsBanner isStale={stale} isLoading={loading} />
-          {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-700">{error}</p>}
-          {loading && <p role="status" className="flex items-center gap-2 text-sm text-slate-600"><Loader2 size={16} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Calculando con los datos actuales…</p>}
+          {error && <p role="alert" className="desk-error">{error}</p>}
+          {loading && <p role="status" className="desk-loading"><Loader2 size={16} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Calculando con los datos actuales…</p>}
           {result && analyzedRequest ? (
-            <div data-testid="results-panel" className={clsx('space-y-6', stale && 'opacity-60')}>
-              <RecommendationHeroCard recommended={result.recommended} currency={analyzedRequest.currency} productName={analyzedRequest.product_name} mode={resultMode} />
-              <SensitivityAndComparisonBar response={result} request={draftRequest} currency={analyzedRequest.currency} onQuickRecalculate={quickRecalculate} isLoading={loading} useMocks={mode === 'mock'} />
-              <Suspense fallback={<div className="h-[300px] rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Cargando comparación de alternativas…</div>}>
-                <AlternativesComparisonSection response={result} currency={analyzedRequest.currency} />
-              </Suspense>
-              <ProcedureAccordion procedure={result.procedure} />
+            <div data-testid="results-panel" className={clsx('desk-result-stack', stale && 'opacity-60')}>
+              <RecommendationHeroCard recommended={result.recommended} currency={analyzedRequest.currency} productName={analyzedRequest.product_name} comparison={result.current_comparison} />
+              <div hidden={assistantOpen}><DecisionWorkspace response={result} currency={analyzedRequest.currency} onEdit={editSection} /></div>
             </div>
-          ) : !loading && <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 text-sm leading-6 text-slate-500">Completa los datos y presiona «Calcular compra óptima». Puedes cargar un caso de referencia para empezar.</div>}
+          ) : !loading && <div className="desk-glass desk-empty">Completa los datos y presiona «Calcular mejor compra». Puedes cargar un caso de referencia para empezar.</div>}
+          <AssistantPanel isOpen={assistantOpen} onClose={() => { setAssistantOpen(false); assistantTrigger.current?.focus(); }} currentDraft={draftRequest} currentResult={!loading && !formDirty ? result : null} onApplyDraft={applyAssistantDraft} isCalculating={loading} aiAvailable={aiAvailable} />
         </section>
       </main>
-      <AssistantPanel isOpen={assistantOpen} onClose={() => { setAssistantOpen(false); assistantTrigger.current?.focus(); }} currentDraft={draftRequest} currentResult={!loading && !formDirty && resultMode === mode ? result : null} onApplyDraft={applyAssistantDraft} isCalculating={loading} useMocks={mode === 'mock'} />
-      </div>
-      {!assistantOpen && <button type="button" onClick={() => setAssistantOpen(true)} aria-label="Abrir asistente IA" className="fixed bottom-4 right-4 z-20 inline-flex h-12 w-12 items-center justify-center rounded-full bg-indigo-600 text-white shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 lg:hidden"><Sparkles size={22} aria-hidden="true" /></button>}
     </div>
   );
 }

@@ -11,9 +11,9 @@ Plataforma web de apoyo a decisiones de compra mediante el modelo de cantidad ec
 | Fecha objetivo | 14 de octubre de 2026, hora de Lima |
 | Duración de planificación | 3 horas y 45 minutos desde el inicio del trabajo |
 | Método de organización | Sprint de un día con backlog priorizado, responsables, criterios de aceptación y revisión final |
-| Estado | Planificación; los entregables aún no se consideran implementados |
+| Estado | Calculadora integrada y probada; validación con Gemini pendiente de credenciales |
 
-> Este README es el acuerdo de trabajo del sprint. La estructura, los servicios y las funciones descritas son entregables por construir. Los tiempos son estimaciones de planificación; el cumplimiento se comprueba con los criterios de aceptación.
+> Las secciones de backlog conservan el plan original del sprint. La estructura actual está en la sección 9 y el arranque comprobado en la sección 13. El cierre real y sus limitaciones están en [docs/integracion-backend-frontend.md](docs/integracion-backend-frontend.md).
 
 ## 1. Objetivo del sprint
 
@@ -93,11 +93,11 @@ Cuentas de usuario, base de datos central, conversación continua con respuesta 
 | Gráficos | Recharts | Comparación por alternativa; curvas avanzadas quedan en P1. |
 | Backend | Python, FastAPI y Pydantic | Validación, API documentada y coordinación de servicios. |
 | Motor matemático | Python puro | Fórmulas reproducibles, sin dependencias de la IA. |
-| Texto y fotografía | SDK de OpenAI para Python y Responses API | Interpretación con salida estructurada y explicaciones. |
+| Texto y fotografía | SDK de Google Gen AI para Python (Gemini) | Interpretación con salida estructurada y explicaciones. |
 | Voz | MediaRecorder y API de transcripción | Mensaje grabado; el usuario revisa el texto antes de enviarlo. |
 | Contrato | OpenAPI, JSON y tipos TypeScript | Estructuras consistentes para trabajar en paralelo. |
 | Pruebas | pytest, Vitest y recorrido con Playwright | Casos matemáticos, validación e integración esencial. |
-| Simulación | MSW con ejemplos compartidos | Desarrollo del cliente sin dependencia de servicios reales. |
+| Pruebas aisladas | Dobles de servicios y ejemplos compartidos | Únicamente en pruebas; la aplicación usa siempre la API real. |
 
 No se incorpora una base de datos al incremento de hoy. Se fijarán las versiones en los archivos de dependencias. El proveedor y los modelos de IA quedarán configurables mediante variables de entorno.
 
@@ -378,98 +378,63 @@ flowchart TD
 
 La interpretación del asistente genera propuestas. El usuario las revisa y el motor calcula con los datos aplicados. Las explicaciones se basan en el escenario vigente. La clave de IA permanece en el backend.
 
-## 9. Estructura de archivos propuesta
+## 9. Estructura actual de archivos
 
 ```text
-siop/
+SIOP/
 ├── README.md
-├── .gitignore
+├── pytest.ini                    # Permite ejecutar pytest desde la raíz
 ├── docs/
-│   ├── alcance.md
-│   ├── arquitectura.md
-│   ├── reglas-del-modelo.md
-│   ├── validacion-winqsb.md
-│   └── guion-demostracion.md
+│   ├── guion-demostracion.md
+│   └── integracion-backend-frontend.md
 ├── contracts/
 │   ├── openapi.json
-│   └── examples/
-│       ├── analysis-request.json
-│       ├── analysis-response.json
-│       ├── assistant-response.json
-│       └── validation-error.json
+│   ├── schemas/                  # JSON Schema exportados por Pydantic
+│   └── examples/                 # Solicitudes, respuestas y errores
 ├── fixtures/
-│   ├── cases/
-│   │   ├── caso-ily.json
-│   │   ├── caso-wohl.json
-│   │   └── caso-sensibilidad.json
+│   ├── cases/                    # ily, wohl, sensitivity-a, sensitivity-b
 │   └── expected-results/
 ├── apps/
-│   ├── web/
-│   │   ├── package.json
+│   ├── api/
+│   │   ├── pyproject.toml
+│   │   ├── requirements.txt
 │   │   ├── .env.example
-│   │   ├── vite.config.ts
-│   │   ├── public/
-│   │   ├── src/
-│   │   │   ├── app/
-│   │   │   ├── components/
-│   │   │   │   └── ui/
-│   │   │   ├── features/
-│   │   │   │   ├── onboarding/
-│   │   │   │   ├── inventory-form/
-│   │   │   │   ├── results/
-│   │   │   │   ├── scenarios/
-│   │   │   │   ├── assistant/
-│   │   │   │   └── report/
-│   │   │   ├── services/
-│   │   │   │   ├── api-client.ts
-│   │   │   │   └── generated/
-│   │   │   ├── mocks/
-│   │   │   ├── storage/
-│   │   │   ├── styles/
-│   │   │   └── main.tsx
+│   │   ├── app/
+│   │   │   ├── main.py
+│   │   │   ├── core/
+│   │   │   ├── routes/
+│   │   │   ├── schemas/
+│   │   │   ├── domain/            # Único motor de cálculo
+│   │   │   └── services/          # Análisis, Gemini, validación y transcripción
+│   │   ├── tools/export_contract.py
 │   │   └── tests/
-│   └── api/
-│       ├── pyproject.toml
+│   │       ├── unit/
+│   │       ├── integration/
+│   │       └── assistant/
+│   └── web/
+│       ├── package.json
+│       ├── package-lock.json
 │       ├── .env.example
-│       ├── app/
-│       │   ├── main.py
-│       │   ├── core/
-│       │   │   └── config.py
-│       │   ├── routes/
-│       │   │   ├── health.py
-│       │   │   ├── analyses.py
-│       │   │   └── assistant.py
-│       │   ├── schemas/
-│       │   │   ├── inventory.py
-│       │   │   ├── analysis.py
-│       │   │   └── assistant.py
-│       │   ├── domain/
-│       │   │   ├── normalization.py
-│       │   │   ├── quantity_discounts.py
-│       │   │   ├── candidate_selection.py
-│       │   │   └── cost_breakdown.py
+│       ├── vite.config.ts
+│       ├── src/
+│       │   ├── App.tsx
+│       │   ├── features/
+│       │   │   ├── inventory-form/
+│       │   │   ├── results/
+│       │   │   └── assistant/
 │       │   ├── services/
-│       │   │   ├── analysis_service.py
-│       │   │   └── assistant_service.py
-│       │   └── ai/
-│       │       ├── provider.py
-│       │       ├── tools.py
-│       │       ├── transcription.py
-│       │       └── prompts/
-│       └── tests/
-│           ├── unit/
-│           ├── integration/
-│           └── assistant/
-├── tests/
-│   └── e2e/
-└── deployment/
-    └── Dockerfile
+│       │   │   ├── api-client.ts
+│       │   │   ├── api-adapters.ts
+│       │   │   └── generated/types.ts
+│       │   └── styles/
+│       ├── tests/fixtures/        # Antiguos mocks, aislados de la aplicación
+│       └── design/               # Diseño y evidencias visuales
+└── tests/e2e/integracion-real.cjs
 ```
 
+Se trasladaron `app/`, sus pruebas, `requirements.txt` y el exportador a `apps/api/`. No se eliminaron archivos no vacíos; los ejemplos de simulación se conservaron dentro de pruebas y el recorrido anterior de diseño en `apps/web/design/legacy/`.
 
-Las carpetas `scenarios/`, `storage/`, `report/` y `deployment/` corresponden a P1 y se crean solo si se implementa esa mejora. Para hoy se priorizan `inventory-form/`, `results/`, `assistant/`, `domain/`, `routes/`, `schemas/` y los ejemplos del contrato.
-
-Los tipos TypeScript del cliente se obtendrán del contrato OpenAPI y permanecerán versionados. El módulo matemático no importará FastAPI ni el proveedor de IA.
+El contrato HTTP anidado vive en `contracts/openapi.json`. `api-adapters.ts` valida sus respuestas y traduce a los tipos planos de las vistas/formularios en `generated/types.ts`; no implementa fórmulas de cálculo. Los ejemplos del selector contienen solo solicitudes que FastAPI calcula de nuevo. No hay modo simulado en producción.
 
 ## 10. Contrato mínimo de API
 
@@ -533,53 +498,71 @@ Los mocks sirven para desarrollar y probar, no para afirmar que una función rea
 
 ## 13. Preparación para ejecutar el proyecto
 
-### Frontend — Rubén
+Requisitos comprobados: Python 3.12, Node.js 22 y npm 10; Google Chrome para el recorrido automatizado. Usar dos terminales de PowerShell desde la raíz del repositorio.
 
-Base React/TypeScript/Vite en `apps/web/`. Entorno utilizado: **Node.js 22.11.0** y **npm 10.9.0**. Las versiones de dependencias están fijadas en `package.json` y `package-lock.json`.
+### Backend — terminal 1
 
-Desde la raíz del repositorio, en PowerShell:
+```powershell
+python -m venv apps/api/.venv
+apps/api/.venv/Scripts/python.exe -m pip install -r apps/api/requirements.txt
+if (-not (Test-Path -LiteralPath apps/api/.env)) {
+    Copy-Item -LiteralPath apps/api/.env.example -Destination apps/api/.env
+}
+apps/api/.venv/Scripts/python.exe -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000 --reload
+```
+
+Salud: `http://127.0.0.1:8000/api/v1/health`. Documentación interactiva: `http://127.0.0.1:8000/docs`.
+
+La calculadora funciona sin credenciales de IA. Para texto, fotografías y transcripciones, configurar en `apps/api/.env` las variables `GEMINI_API_KEY` y `GEMINI_TEXT_MODEL` con la clave y el modelo disponibles para el equipo; reiniciar la API. No ponerlas en el frontend ni versionarlas. La configuración del sistema tiene prioridad sobre los archivos `.env`; el archivo de `apps/api/` tiene prioridad sobre un `.env` heredado de la raíz.
+
+`ai_available` indica que existen clave y modelo configurados; no confirma acceso, cuota o permisos del proveedor. Sin configuración, los endpoints del asistente devuelven un error 503 recuperable y la calculadora sigue disponible.
+
+### Frontend — terminal 2
 
 ```powershell
 cd apps/web
-npm install --cache .npm-cache --no-audit --no-fund
+npm ci
 if (-not (Test-Path -LiteralPath .env)) {
     Copy-Item -LiteralPath .env.example -Destination .env
 }
 npm run dev
 ```
 
-La copia inicial conserva un `.env` que ya exista. Su configuración de ejemplo es:
+El archivo `.env` del frontend contiene únicamente:
 
 ```dotenv
-VITE_API_BASE_URL=http://localhost:8000/api/v1
-VITE_USE_MOCKS=true
+VITE_API_BASE_URL=/api/v1
 ```
 
-Abrir la dirección que Vite muestra en la terminal, normalmente **http://localhost:5173/**. Mantener esa terminal abierta; `npm run build` genera archivos para producción y no inicia un servidor. Si el puerto está ocupado, Vite puede ofrecer otro. Para detenerlo, usar `Ctrl+C`.
+Si se conserva un `.env` anterior, actualizar esa variable y retirar `VITE_USE_MOCKS`. La aplicación ya no usa esa bandera. Vite reenvía `/api` a `http://127.0.0.1:8000`; así se evita depender del puerto elegido por el frontend para CORS. Abrir exactamente la dirección que Vite muestra en la terminal: normalmente `http://localhost:5173/`, o el siguiente puerto libre. Ambas terminales deben seguir abiertas. En Windows, detener Vite antes de volver a ejecutar `npm ci` para liberar las dependencias nativas. Detener cada servidor con `Ctrl+C`.
 
-En otra terminal de PowerShell, desde la raíz del repositorio:
+Para servir `dist/` en otro entorno, publicar `/api/v1` bajo el mismo origen mediante un proxy o configurar `VITE_API_BASE_URL` antes de compilar y permitir el origen en `CORS_ORIGINS` de la API. El build no inicia un servidor.
+
+### Pruebas y compilación
+
+Desde la raíz:
 
 ```powershell
+apps/api/.venv/Scripts/python.exe -m pytest -q
+apps/api/.venv/Scripts/python.exe apps/api/tools/export_contract.py
 cd apps/web
-npm run build
 npm test
+npm run build
+npm audit
 ```
 
-`npm run build` ejecuta `tsc -b` y luego Vite; la salida de producción queda en `apps/web/dist/`. Las pruebas verifican los casos de referencia, formularios, resultados, borradores y liberación del micrófono mediante dobles de navegador y servicios.
+`npm run build` comprueba TypeScript y genera `apps/web/dist/`. Las pruebas unitarias usan dobles exclusivamente en sus archivos de pruebas. Los resultados reales de los casos compartidos provienen del motor Python.
 
-Verificación de esta entrega: instalación y configuración comprobadas, servidor de desarrollo operativo, build generado sin errores ni avisos de TypeScript y **106 pruebas aprobadas** en **7 archivos**. Vite/Rollup muestra dos avisos sobre anotaciones de comentarios de la dependencia Zod; no son avisos de TypeScript ni impiden generar el bundle.
+Con backend y Vite iniciados, desde `apps/web/`:
 
-El modo inicial se configura con `VITE_USE_MOCKS`; el encabezado permite alternar entre **Modo Simulado (Mocks)** y **API Real (FastAPI)**. Para iniciar directamente contra el backend, cambiar `VITE_USE_MOCKS=false` y reiniciar Vite. La API debe estar disponible en la dirección configurada y permitir el origen del frontend. Las claves de IA permanecen en el servidor.
+```powershell
+$env:SIOP_REVIEW_URL='http://localhost:5173/'
+npm run test:e2e
+```
 
-En modo simulado se utilizan los cuatro casos precalculados y respuestas de ejemplo del asistente. Otros escenarios requieren la API real. La captura de voz requiere un navegador con MediaRecorder, localhost/HTTPS y permiso del micrófono; siempre existen carga de audio y simulación de prueba como alternativas. Se libera el micrófono al detener, cancelar, cambiar de pestaña o cerrar el asistente. La simulación prepara texto identificado como ejemplo y no representa una transcripción real.
+Cambiar `SIOP_REVIEW_URL` si Vite ofrece otro puerto. El recorrido usa Google Chrome instalado, no intercepta las solicitudes y guarda su informe y capturas en `apps/web/design/evidencia/`. Para instalar Chrome si no está disponible: `npx playwright install chrome`.
 
-El guion de Rubén está en [docs/guion-demostracion.md](docs/guion-demostracion.md). El frontend no declara como comprobados el micrófono físico, los servicios reales de IA, la integración completa con FastAPI ni WinQSB: esas evidencias y la aceptación conjunta siguen pendientes.
-
-### Backend e integración — Jelibeth y ambos
-
-- Jelibeth documenta entorno Python, instalación, variables, arranque y pruebas del backend.
-- Ambos comprueban una ejecución completa con los servicios reales desde sus instrucciones.
-- Las claves reales se guardan fuera del control de versiones; los ejemplos de entorno no incluyen secretos.
+Verificación final: **147 pruebas de backend**, **111 de frontend**, **15 comprobaciones del navegador**, instalación reproducible y build con cero errores o avisos de TypeScript. La evidencia cubre cálculo real, cuatro referencias, demanda arbitraria, equivalencia mensual, sensibilidad, diseño adaptable, MediaRecorder y errores 503 sin credenciales. Interpretación y transcripción exitosas con Gemini, hardware físico y comparación con WinQSB permanecen pendientes de validación. Los avisos de dependencias se detallan en el [registro de integración](docs/integracion-backend-frontend.md).
 
 ## 14. Referencias técnicas
 
@@ -588,8 +571,7 @@ El guion de Rubén está en [docs/guion-demostracion.md](docs/guion-demostracion
 - [Tailwind CSS con Vite](https://tailwindcss.com/docs/installation/using-vite).
 - [Recharts](https://recharts.github.io/en-US/guide/).
 - [FastAPI: funcionalidades, Pydantic y OpenAPI](https://fastapi.tiangolo.com/features/).
-- [OpenAI Responses API](https://developers.openai.com/api/reference/responses/overview).
-- [OpenAI: salidas estructuradas](https://developers.openai.com/api/docs/guides/structured-outputs).
-- [OpenAI: transcripción de archivos de audio](https://developers.openai.com/api/docs/guides/speech-to-text).
+- [Gemini: salidas estructuradas](https://ai.google.dev/gemini-api/docs/structured-output).
+- [FastAPI: CORS](https://fastapi.tiangolo.com/tutorial/cors/).
 - [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder).
-- [Mock Service Worker](https://mswjs.io/docs/).
+- [Vitest: migración a la versión 4](https://v4.vitest.dev/guide/migration.html).

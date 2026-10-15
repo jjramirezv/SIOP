@@ -1,6 +1,5 @@
-import { clsx } from 'clsx';
-import { REFERENCE_CASES } from '../../mocks/reference-cases';
-import type { ReferenceCaseId } from '../../mocks/reference-cases';
+import { REFERENCE_CASES } from './reference-cases';
+import type { ReferenceCaseId } from './reference-cases';
 
 interface CaseSelectorBarProps {
   activeCase: ReferenceCaseId | null;
@@ -15,22 +14,13 @@ const caseLabels: Record<ReferenceCaseId, string> = {
 
 export function CaseSelectorBar({ activeCase, onSelectCase, isLoading = false }: CaseSelectorBarProps) {
   return (
-    <section className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs" aria-label="Casos de referencia">
-      <p className="text-xs font-medium text-slate-600">Casos de referencia validados (1 clic para cargar)</p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {Object.values(REFERENCE_CASES).map(({ id, subtitle }) => (
-          <button
-            key={id} type="button" disabled={isLoading} title={subtitle}
-            aria-pressed={activeCase === id} onClick={() => onSelectCase(id)}
-            className={clsx(
-              'rounded-full border px-3.5 py-2 text-xs transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-wait',
-              activeCase === id
-                ? 'bg-indigo-50 border-indigo-600 text-indigo-900 font-semibold'
-                : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-slate-50',
-            )}
-          >{caseLabels[id]}</button>
-        ))}
-      </div>
-    </section>
+    <div className="desk-case-picker">
+      <label htmlFor="reference-case" className="desk-label">Caso de análisis</label>
+      <select id="reference-case" className="desk-input" value={activeCase ?? ''} disabled={isLoading}
+        onChange={(event) => onSelectCase(event.target.value as ReferenceCaseId)}>
+        <option value="" disabled>Ejercicio personalizado</option>
+        {Object.values(REFERENCE_CASES).map(({ id }) => <option key={id} value={id}>{caseLabels[id]}</option>)}
+      </select>
+    </div>
   );
 }

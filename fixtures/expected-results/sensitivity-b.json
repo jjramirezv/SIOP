@@ -1,0 +1,230 @@
+{
+  "contract_version": "1.0.0",
+  "model": "all_units_discount",
+  "data_source": "reference_example",
+  "input": {
+    "product_name": "Sensibilidad A (Mantenimiento Moderado)",
+    "currency": "PEN",
+    "demand": {
+      "value": 200.0,
+      "period": "month"
+    },
+    "order_cost": 40.0,
+    "holding_cost": {
+      "mode": "fixed",
+      "value": 10.0,
+      "period": "year"
+    },
+    "days_per_year": 360,
+    "discount_tiers": [
+      {
+        "min_quantity": 0,
+        "unit_price": 20.0
+      },
+      {
+        "min_quantity": 200,
+        "unit_price": 19.6
+      },
+      {
+        "min_quantity": 500,
+        "unit_price": 19.2
+      }
+    ],
+    "current_order_quantity": 500
+  },
+  "normalized": {
+    "annual_demand": 2400.0,
+    "days_per_year": 360,
+    "holding_cost": {
+      "mode": "fixed",
+      "value": 10.0,
+      "period": "year"
+    }
+  },
+  "candidates": [
+    {
+      "tier_index": 0,
+      "min_quantity": 0,
+      "max_quantity_exclusive": 200,
+      "unit_price": 20.0,
+      "annual_holding_per_unit": 10.0,
+      "theoretical_eoq": 138.5640646055102,
+      "status": "feasible",
+      "evaluated_quantity": 139,
+      "annual_costs": {
+        "purchase": 48000.0,
+        "ordering": 690.6474820143885,
+        "holding": 695.0,
+        "total": 49385.647482014385
+      },
+      "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+      "order": {
+        "tier_index": 0,
+        "quantity": 139,
+        "unit_price": 20.0,
+        "annual_holding_per_unit": 10.0,
+        "investment_per_order": 2780.0,
+        "orders_per_year": 17.26618705035971,
+        "cycle_days": 20.85,
+        "annual_costs": {
+          "purchase": 48000.0,
+          "ordering": 690.6474820143885,
+          "holding": 695.0,
+          "total": 49385.647482014385
+        }
+      }
+    },
+    {
+      "tier_index": 1,
+      "min_quantity": 200,
+      "max_quantity_exclusive": 500,
+      "unit_price": 19.6,
+      "annual_holding_per_unit": 10.0,
+      "theoretical_eoq": 138.5640646055102,
+      "status": "adjusted",
+      "evaluated_quantity": 200,
+      "annual_costs": {
+        "purchase": 47040.0,
+        "ordering": 480.0,
+        "holding": 1000.0,
+        "total": 48520.0
+      },
+      "reason": "Se ajusta al mínimo del descuento.",
+      "order": {
+        "tier_index": 1,
+        "quantity": 200,
+        "unit_price": 19.6,
+        "annual_holding_per_unit": 10.0,
+        "investment_per_order": 3920.0,
+        "orders_per_year": 12.0,
+        "cycle_days": 30.0,
+        "annual_costs": {
+          "purchase": 47040.0,
+          "ordering": 480.0,
+          "holding": 1000.0,
+          "total": 48520.0
+        }
+      }
+    },
+    {
+      "tier_index": 2,
+      "min_quantity": 500,
+      "max_quantity_exclusive": null,
+      "unit_price": 19.2,
+      "annual_holding_per_unit": 10.0,
+      "theoretical_eoq": 138.5640646055102,
+      "status": "adjusted",
+      "evaluated_quantity": 500,
+      "annual_costs": {
+        "purchase": 46080.0,
+        "ordering": 192.0,
+        "holding": 2500.0,
+        "total": 48772.0
+      },
+      "reason": "Se ajusta al mínimo del descuento.",
+      "order": {
+        "tier_index": 2,
+        "quantity": 500,
+        "unit_price": 19.2,
+        "annual_holding_per_unit": 10.0,
+        "investment_per_order": 9600.0,
+        "orders_per_year": 4.8,
+        "cycle_days": 75.0,
+        "annual_costs": {
+          "purchase": 46080.0,
+          "ordering": 192.0,
+          "holding": 2500.0,
+          "total": 48772.0
+        }
+      }
+    }
+  ],
+  "recommended": {
+    "tier_index": 1,
+    "quantity": 200,
+    "unit_price": 19.6,
+    "annual_holding_per_unit": 10.0,
+    "investment_per_order": 3920.0,
+    "orders_per_year": 12.0,
+    "cycle_days": 30.0,
+    "annual_costs": {
+      "purchase": 47040.0,
+      "ordering": 480.0,
+      "holding": 1000.0,
+      "total": 48520.0
+    }
+  },
+  "comparison": {
+    "current": {
+      "tier_index": 2,
+      "quantity": 500,
+      "unit_price": 19.2,
+      "annual_holding_per_unit": 10.0,
+      "investment_per_order": 9600.0,
+      "orders_per_year": 4.8,
+      "cycle_days": 75.0,
+      "annual_costs": {
+        "purchase": 46080.0,
+        "ordering": 192.0,
+        "holding": 2500.0,
+        "total": 48772.0
+      }
+    },
+    "annual_savings": 252.0,
+    "savings_percentage": 0.5166899040433035
+  },
+  "assumptions": [
+    "Demanda constante, reposición instantánea y sin faltantes.",
+    "El descuento aplica a todas las unidades del pedido.",
+    "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+    "Un año tiene 12 meses y 360 días de cálculo.",
+    "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+    "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+    "Los importes conservan precisión interna y se redondean solo al presentar.",
+    "La moneda es una etiqueta; no se convierten divisas."
+  ],
+  "steps": [
+    {
+      "title": "Demanda anual",
+      "formula": "D = demanda × períodos por año",
+      "substitution": "200 × 12",
+      "result": "2400.00 unidades/año"
+    },
+    {
+      "title": "Mantenimiento anual",
+      "formula": "h = importe por unidad × períodos por año",
+      "substitution": "10 × 1",
+      "result": "10.00 PEN/unidad/año"
+    },
+    {
+      "title": "CEP del precio 20.00; tramo [0, 200)",
+      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+      "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+      "result": "CEP teórica 138.56; cantidad entera evaluada 139. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+    },
+    {
+      "title": "CEP del precio 19.60; tramo [200, 500)",
+      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+      "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+      "result": "CEP teórica 138.56; cantidad entera evaluada 200. Se ajusta al mínimo del descuento."
+    },
+    {
+      "title": "CEP del precio 19.20; tramo desde 500",
+      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+      "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+      "result": "CEP teórica 138.56; cantidad entera evaluada 500. Se ajusta al mínimo del descuento."
+    },
+    {
+      "title": "Alternativa de menor costo anual",
+      "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+      "substitution": "47040.00 + 480.00 + 1000.00",
+      "result": "48520.00 PEN/año; 200 unidades por pedido"
+    },
+    {
+      "title": "Frecuencia y duración del ciclo",
+      "formula": "N = D / Q; T = Q / D × días por año",
+      "substitution": "N = 2400.00 / 200; T = 200 / 2400.00 × 360",
+      "result": "12.00 pedidos/año; 30.00 días entre pedidos"
+    }
+  ]
+}

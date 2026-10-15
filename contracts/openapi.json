@@ -1,0 +1,1718 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SIOP - Contrato de integración",
+    "description": "Contrato de integración de las rutas implementadas: salud, análisis, asistente por texto/fotografía y transcripción mediante Gemini.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/api/v1/analyses": {
+      "post": {
+        "tags": [
+          "analyses"
+        ],
+        "summary": "Calcular la mejor alternativa de compra",
+        "description": "Motor real de descuentos sobre todas las unidades, con cantidades enteras factibles.",
+        "operationId": "analysis_api_v1_analyses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              },
+              "example": {
+                "product_name": "Sensibilidad A (Mantenimiento Moderado)",
+                "currency": "PEN",
+                "demand": {
+                  "value": 200,
+                  "period": "month"
+                },
+                "order_cost": 40,
+                "holding_cost": {
+                  "mode": "fixed",
+                  "value": 5,
+                  "period": "year"
+                },
+                "days_per_year": 360,
+                "current_order_quantity": 200,
+                "discount_tiers": [
+                  {
+                    "min_quantity": 0,
+                    "unit_price": 20
+                  },
+                  {
+                    "min_quantity": 200,
+                    "unit_price": 19.6
+                  },
+                  {
+                    "min_quantity": 500,
+                    "unit_price": 19.2
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                },
+                "example": {
+                  "contract_version": "1.0.0",
+                  "model": "all_units_discount",
+                  "data_source": "calculated",
+                  "input": {
+                    "product_name": "Sensibilidad A (Mantenimiento Moderado)",
+                    "currency": "PEN",
+                    "demand": {
+                      "value": 200.0,
+                      "period": "month"
+                    },
+                    "order_cost": 40.0,
+                    "holding_cost": {
+                      "mode": "fixed",
+                      "value": 5.0,
+                      "period": "year"
+                    },
+                    "days_per_year": 360,
+                    "discount_tiers": [
+                      {
+                        "min_quantity": 0,
+                        "unit_price": 20.0
+                      },
+                      {
+                        "min_quantity": 200,
+                        "unit_price": 19.6
+                      },
+                      {
+                        "min_quantity": 500,
+                        "unit_price": 19.2
+                      }
+                    ],
+                    "current_order_quantity": 200
+                  },
+                  "normalized": {
+                    "annual_demand": 2400.0,
+                    "days_per_year": 360,
+                    "holding_cost": {
+                      "mode": "fixed",
+                      "value": 5.0,
+                      "period": "year"
+                    }
+                  },
+                  "candidates": [
+                    {
+                      "tier_index": 0,
+                      "min_quantity": 0,
+                      "max_quantity_exclusive": 200,
+                      "unit_price": 20.0,
+                      "annual_holding_per_unit": 5.0,
+                      "theoretical_eoq": 195.95917942265424,
+                      "status": "feasible",
+                      "evaluated_quantity": 196,
+                      "annual_costs": {
+                        "purchase": 48000.0,
+                        "ordering": 489.7959183673469,
+                        "holding": 490.0,
+                        "total": 48979.795918367345
+                      },
+                      "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+                      "order": {
+                        "tier_index": 0,
+                        "quantity": 196,
+                        "unit_price": 20.0,
+                        "annual_holding_per_unit": 5.0,
+                        "investment_per_order": 3920.0,
+                        "orders_per_year": 12.244897959183673,
+                        "cycle_days": 29.4,
+                        "annual_costs": {
+                          "purchase": 48000.0,
+                          "ordering": 489.7959183673469,
+                          "holding": 490.0,
+                          "total": 48979.795918367345
+                        }
+                      }
+                    },
+                    {
+                      "tier_index": 1,
+                      "min_quantity": 200,
+                      "max_quantity_exclusive": 500,
+                      "unit_price": 19.6,
+                      "annual_holding_per_unit": 5.0,
+                      "theoretical_eoq": 195.95917942265424,
+                      "status": "adjusted",
+                      "evaluated_quantity": 200,
+                      "annual_costs": {
+                        "purchase": 47040.0,
+                        "ordering": 480.0,
+                        "holding": 500.0,
+                        "total": 48020.0
+                      },
+                      "reason": "Se ajusta al mínimo del descuento.",
+                      "order": {
+                        "tier_index": 1,
+                        "quantity": 200,
+                        "unit_price": 19.6,
+                        "annual_holding_per_unit": 5.0,
+                        "investment_per_order": 3920.0,
+                        "orders_per_year": 12.0,
+                        "cycle_days": 30.0,
+                        "annual_costs": {
+                          "purchase": 47040.0,
+                          "ordering": 480.0,
+                          "holding": 500.0,
+                          "total": 48020.0
+                        }
+                      }
+                    },
+                    {
+                      "tier_index": 2,
+                      "min_quantity": 500,
+                      "max_quantity_exclusive": null,
+                      "unit_price": 19.2,
+                      "annual_holding_per_unit": 5.0,
+                      "theoretical_eoq": 195.95917942265424,
+                      "status": "adjusted",
+                      "evaluated_quantity": 500,
+                      "annual_costs": {
+                        "purchase": 46080.0,
+                        "ordering": 192.0,
+                        "holding": 1250.0,
+                        "total": 47522.0
+                      },
+                      "reason": "Se ajusta al mínimo del descuento.",
+                      "order": {
+                        "tier_index": 2,
+                        "quantity": 500,
+                        "unit_price": 19.2,
+                        "annual_holding_per_unit": 5.0,
+                        "investment_per_order": 9600.0,
+                        "orders_per_year": 4.8,
+                        "cycle_days": 75.0,
+                        "annual_costs": {
+                          "purchase": 46080.0,
+                          "ordering": 192.0,
+                          "holding": 1250.0,
+                          "total": 47522.0
+                        }
+                      }
+                    }
+                  ],
+                  "recommended": {
+                    "tier_index": 2,
+                    "quantity": 500,
+                    "unit_price": 19.2,
+                    "annual_holding_per_unit": 5.0,
+                    "investment_per_order": 9600.0,
+                    "orders_per_year": 4.8,
+                    "cycle_days": 75.0,
+                    "annual_costs": {
+                      "purchase": 46080.0,
+                      "ordering": 192.0,
+                      "holding": 1250.0,
+                      "total": 47522.0
+                    }
+                  },
+                  "comparison": {
+                    "current": {
+                      "tier_index": 1,
+                      "quantity": 200,
+                      "unit_price": 19.6,
+                      "annual_holding_per_unit": 5.0,
+                      "investment_per_order": 3920.0,
+                      "orders_per_year": 12.0,
+                      "cycle_days": 30.0,
+                      "annual_costs": {
+                        "purchase": 47040.0,
+                        "ordering": 480.0,
+                        "holding": 500.0,
+                        "total": 48020.0
+                      }
+                    },
+                    "annual_savings": 498.0,
+                    "savings_percentage": 1.0370678883798417
+                  },
+                  "assumptions": [
+                    "Demanda constante, reposición instantánea y sin faltantes.",
+                    "El descuento aplica a todas las unidades del pedido.",
+                    "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+                    "Un año tiene 12 meses y 360 días de cálculo.",
+                    "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+                    "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+                    "Los importes conservan precisión interna y se redondean solo al presentar.",
+                    "La moneda es una etiqueta; no se convierten divisas."
+                  ],
+                  "steps": [
+                    {
+                      "title": "Demanda anual",
+                      "formula": "D = demanda × períodos por año",
+                      "substitution": "200 × 12",
+                      "result": "2400.00 unidades/año"
+                    },
+                    {
+                      "title": "Mantenimiento anual",
+                      "formula": "h = importe por unidad × períodos por año",
+                      "substitution": "5 × 1",
+                      "result": "5.00 PEN/unidad/año"
+                    },
+                    {
+                      "title": "CEP del precio 20.00; tramo [0, 200)",
+                      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+                      "substitution": "sqrt(2 × 2400.00 × 40.00 / 5.00)",
+                      "result": "CEP teórica 195.96; cantidad entera evaluada 196. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+                    },
+                    {
+                      "title": "CEP del precio 19.60; tramo [200, 500)",
+                      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+                      "substitution": "sqrt(2 × 2400.00 × 40.00 / 5.00)",
+                      "result": "CEP teórica 195.96; cantidad entera evaluada 200. Se ajusta al mínimo del descuento."
+                    },
+                    {
+                      "title": "CEP del precio 19.20; tramo desde 500",
+                      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+                      "substitution": "sqrt(2 × 2400.00 × 40.00 / 5.00)",
+                      "result": "CEP teórica 195.96; cantidad entera evaluada 500. Se ajusta al mínimo del descuento."
+                    },
+                    {
+                      "title": "Alternativa de menor costo anual",
+                      "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+                      "substitution": "46080.00 + 192.00 + 1250.00",
+                      "result": "47522.00 PEN/año; 500 unidades por pedido"
+                    },
+                    {
+                      "title": "Frecuencia y duración del ciclo",
+                      "formula": "N = D / Q; T = Q / D × días por año",
+                      "substitution": "N = 2400.00 / 500; T = 500 / 2400.00 × 360",
+                      "result": "4.80 pedidos/año; 75.00 días entre pedidos"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos inválidos o fuera de rango.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/api/v1/assistant/messages": {
+      "post": {
+        "tags": [
+          "assistant"
+        ],
+        "summary": "Messages",
+        "operationId": "message_api_v1_assistant_messages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssistantRequest"
+              },
+              "example": {
+                "message": "Vendo 200 cuadernos al mes. Preparar borrador para revisar.",
+                "draft": null,
+                "analysis_input": null,
+                "history": []
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantResponse"
+                },
+                "example": {
+                  "contract_version": "1.0.0",
+                  "data_source": "assistant",
+                  "message": "Entendí una demanda de 200 cuadernos al mes. Confirma los costos y los precios antes de aplicar los datos.",
+                  "action": "review_input",
+                  "proposed_input": {
+                    "product_name": "Cuadernos",
+                    "demand": {
+                      "value": 200,
+                      "period": "month"
+                    }
+                  },
+                  "missing_fields": [
+                    {
+                      "field": "order_cost",
+                      "message": "Confirma el costo por pedido."
+                    },
+                    {
+                      "field": "holding_cost",
+                      "message": "Confirma modo, monto y período de mantenimiento."
+                    },
+                    {
+                      "field": "discount_tiers",
+                      "message": "Confirma cantidades mínimas y precios."
+                    }
+                  ],
+                  "review_fields": [
+                    {
+                      "field": "demand.period",
+                      "message": "Revisa el período de venta."
+                    }
+                  ],
+                  "requires_confirmation": true
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Archivo demasiado grande.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Formato no admitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error del proveedor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Asistente no configurado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Tiempo de espera agotado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/api/v1/assistant/extract-image": {
+      "post": {
+        "tags": [
+          "assistant"
+        ],
+        "summary": "Image",
+        "operationId": "image_api_v1_assistant_extract_image_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_image_api_v1_assistant_extract_image_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Archivo demasiado grande.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Formato no admitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error del proveedor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Asistente no configurado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Tiempo de espera agotado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/api/v1/assistant/transcribe": {
+      "post": {
+        "tags": [
+          "assistant"
+        ],
+        "summary": "Transcribir una grabación",
+        "description": "Recibe WebM, WAV PCM, MP3 o MP4/M4A hasta 10 MiB. Devuelve texto editable; el usuario debe revisarlo antes de enviarlo a messages. La interfaz de grabación debe limitarse a 60 segundos. El servidor valida tamaño y cabeceras; Gemini realiza la decodificación.",
+        "operationId": "transcribe_api_v1_assistant_transcribe_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_transcribe_api_v1_assistant_transcribe_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptionResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Archivo demasiado grande.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Formato no admitido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Error del proveedor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Asistente no configurado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Tiempo de espera agotado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisRequest": {
+        "properties": {
+          "product_name": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Product Name"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency"
+          },
+          "demand": {
+            "$ref": "#/components/schemas/Demand"
+          },
+          "order_cost": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Order Cost"
+          },
+          "holding_cost": {
+            "$ref": "#/components/schemas/HoldingCost"
+          },
+          "days_per_year": {
+            "type": "integer",
+            "maximum": 366.0,
+            "minimum": 1.0,
+            "title": "Days Per Year"
+          },
+          "discount_tiers": {
+            "items": {
+              "$ref": "#/components/schemas/DiscountTier"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Discount Tiers"
+          },
+          "current_order_quantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Order Quantity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "product_name",
+          "currency",
+          "demand",
+          "order_cost",
+          "holding_cost",
+          "days_per_year",
+          "discount_tiers"
+        ],
+        "title": "AnalysisRequest"
+      },
+      "AnalysisResponse": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Contract Version",
+            "default": "1.0.0"
+          },
+          "model": {
+            "type": "string",
+            "const": "all_units_discount",
+            "title": "Model",
+            "default": "all_units_discount"
+          },
+          "data_source": {
+            "type": "string",
+            "enum": [
+              "calculated",
+              "reference_example"
+            ],
+            "title": "Data Source"
+          },
+          "input": {
+            "$ref": "#/components/schemas/AnalysisRequest"
+          },
+          "normalized": {
+            "$ref": "#/components/schemas/NormalizedInput"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Candidates"
+          },
+          "recommended": {
+            "$ref": "#/components/schemas/OrderEvaluation"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assumptions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Assumptions"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/CalculationStep"
+            },
+            "type": "array",
+            "title": "Steps"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "data_source",
+          "input",
+          "normalized",
+          "candidates",
+          "recommended",
+          "comparison",
+          "assumptions",
+          "steps"
+        ],
+        "title": "AnalysisResponse"
+      },
+      "AnnualCosts": {
+        "properties": {
+          "purchase": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Purchase"
+          },
+          "ordering": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Ordering"
+          },
+          "holding": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Holding"
+          },
+          "total": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "purchase",
+          "ordering",
+          "holding",
+          "total"
+        ],
+        "title": "AnnualCosts"
+      },
+      "AnnualHoldingCost": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "percentage"
+            ],
+            "title": "Mode"
+          },
+          "value": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Value"
+          },
+          "period": {
+            "type": "string",
+            "const": "year",
+            "title": "Period",
+            "default": "year"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "value"
+        ],
+        "title": "AnnualHoldingCost"
+      },
+      "AssistantRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InventoryDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "analysis_input": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "History"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "AssistantRequest"
+      },
+      "AssistantResponse": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Contract Version",
+            "default": "1.0.0"
+          },
+          "data_source": {
+            "type": "string",
+            "enum": [
+              "assistant",
+              "reference_example"
+            ],
+            "title": "Data Source"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "clarify",
+              "review_input",
+              "explain",
+              "review_scenario"
+            ],
+            "title": "Action"
+          },
+          "proposed_input": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InventoryDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "missing_fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldIssue"
+            },
+            "type": "array",
+            "title": "Missing Fields"
+          },
+          "review_fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldIssue"
+            },
+            "type": "array",
+            "title": "Review Fields"
+          },
+          "requires_confirmation": {
+            "type": "boolean",
+            "title": "Requires Confirmation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "data_source",
+          "message",
+          "action",
+          "proposed_input",
+          "missing_fields",
+          "review_fields",
+          "requires_confirmation"
+        ],
+        "title": "AssistantResponse"
+      },
+      "Body_image_api_v1_assistant_extract_image_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Draft"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_image_api_v1_assistant_extract_image_post"
+      },
+      "Body_transcribe_api_v1_assistant_transcribe_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_transcribe_api_v1_assistant_transcribe_post"
+      },
+      "CalculationStep": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "formula": {
+            "type": "string",
+            "title": "Formula"
+          },
+          "substitution": {
+            "type": "string",
+            "title": "Substitution"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "formula",
+          "substitution",
+          "result"
+        ],
+        "title": "CalculationStep"
+      },
+      "Candidate": {
+        "properties": {
+          "tier_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tier Index"
+          },
+          "min_quantity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Min Quantity"
+          },
+          "max_quantity_exclusive": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Quantity Exclusive"
+          },
+          "unit_price": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Unit Price"
+          },
+          "annual_holding_per_unit": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Annual Holding Per Unit"
+          },
+          "theoretical_eoq": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Theoretical Eoq"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "feasible",
+              "adjusted",
+              "excluded"
+            ],
+            "title": "Status"
+          },
+          "evaluated_quantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evaluated Quantity"
+          },
+          "annual_costs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnnualCosts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "order": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderEvaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tier_index",
+          "min_quantity",
+          "max_quantity_exclusive",
+          "unit_price",
+          "annual_holding_per_unit",
+          "theoretical_eoq",
+          "status",
+          "evaluated_quantity",
+          "annual_costs",
+          "reason"
+        ],
+        "title": "Candidate"
+      },
+      "ChatMessage": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Content"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessage"
+      },
+      "CurrentComparison": {
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/OrderEvaluation"
+          },
+          "annual_savings": {
+            "type": "number",
+            "title": "Annual Savings"
+          },
+          "savings_percentage": {
+            "type": "number",
+            "title": "Savings Percentage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "current",
+          "annual_savings",
+          "savings_percentage"
+        ],
+        "title": "CurrentComparison"
+      },
+      "Demand": {
+        "properties": {
+          "value": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Value"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "day",
+              "month",
+              "year"
+            ],
+            "title": "Period"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "value",
+          "period"
+        ],
+        "title": "Demand"
+      },
+      "DiscountTier": {
+        "properties": {
+          "min_quantity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Min Quantity"
+          },
+          "unit_price": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Unit Price"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "min_quantity",
+          "unit_price"
+        ],
+        "title": "DiscountTier"
+      },
+      "DraftDemand": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "day",
+                  "month",
+                  "year"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DraftDemand"
+      },
+      "DraftHoldingCost": {
+        "properties": {
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "fixed",
+                  "percentage"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "day",
+                  "month",
+                  "year"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DraftHoldingCost"
+      },
+      "DraftTier": {
+        "properties": {
+          "min_quantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Quantity"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DraftTier"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "VALIDATION_ERROR",
+              "FILE_TOO_LARGE",
+              "UNSUPPORTED_MEDIA_TYPE",
+              "ASSISTANT_UNAVAILABLE",
+              "UPSTREAM_ERROR",
+              "UPSTREAM_TIMEOUT"
+            ],
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/FieldIssue"
+            },
+            "type": "array",
+            "title": "Details"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse"
+      },
+      "FieldIssue": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "FieldIssue"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "default": "SIOP API"
+          },
+          "contract_version": {
+            "type": "string",
+            "const": "1.0.0",
+            "title": "Contract Version",
+            "default": "1.0.0"
+          },
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "HealthResponse"
+      },
+      "HoldingCost": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "fixed",
+              "percentage"
+            ],
+            "title": "Mode"
+          },
+          "value": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Value"
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "day",
+              "month",
+              "year"
+            ],
+            "title": "Period"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "value",
+          "period"
+        ],
+        "title": "HoldingCost"
+      },
+      "InventoryDraft": {
+        "properties": {
+          "product_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Name"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "demand": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftDemand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "order_cost": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Cost"
+          },
+          "holding_cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftHoldingCost"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "days_per_year": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 366.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Per Year"
+          },
+          "discount_tiers": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DraftTier"
+                },
+                "type": "array",
+                "maxItems": 20,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Tiers"
+          },
+          "current_order_quantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Order Quantity"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InventoryDraft"
+      },
+      "NormalizedInput": {
+        "properties": {
+          "annual_demand": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Annual Demand"
+          },
+          "days_per_year": {
+            "type": "integer",
+            "maximum": 366.0,
+            "minimum": 1.0,
+            "title": "Days Per Year"
+          },
+          "holding_cost": {
+            "$ref": "#/components/schemas/AnnualHoldingCost"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "annual_demand",
+          "days_per_year",
+          "holding_cost"
+        ],
+        "title": "NormalizedInput"
+      },
+      "OrderEvaluation": {
+        "properties": {
+          "tier_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tier Index"
+          },
+          "quantity": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Unit Price"
+          },
+          "annual_holding_per_unit": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Annual Holding Per Unit"
+          },
+          "investment_per_order": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Investment Per Order"
+          },
+          "orders_per_year": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Orders Per Year"
+          },
+          "cycle_days": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Cycle Days"
+          },
+          "annual_costs": {
+            "$ref": "#/components/schemas/AnnualCosts"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tier_index",
+          "quantity",
+          "unit_price",
+          "annual_holding_per_unit",
+          "investment_per_order",
+          "orders_per_year",
+          "cycle_days",
+          "annual_costs"
+        ],
+        "title": "OrderEvaluation"
+      },
+      "TranscriptionResponse": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Text"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TranscriptionResponse"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8000"
+    }
+  ]
+}

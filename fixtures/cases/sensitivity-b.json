@@ -1,0 +1,30 @@
+{
+  "product_name": "Sensibilidad A (Mantenimiento Moderado)",
+  "currency": "PEN",
+  "demand": {
+    "value": 200,
+    "period": "month"
+  },
+  "order_cost": 40,
+  "holding_cost": {
+    "mode": "fixed",
+    "value": 10,
+    "period": "year"
+  },
+  "days_per_year": 360,
+  "current_order_quantity": 500,
+  "discount_tiers": [
+    {
+      "min_quantity": 0,
+      "unit_price": 20
+    },
+    {
+      "min_quantity": 200,
+      "unit_price": 19.6
+    },
+    {
+      "min_quantity": 500,
+      "unit_price": 19.2
+    }
+  ]
+}

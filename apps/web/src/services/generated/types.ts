@@ -1,3 +1,5 @@
+// Modelos de presentación del formulario y las vistas.
+// El contrato HTTP de FastAPI se valida y adapta en ../api-adapters.ts.
 export type TimePeriod = 'day' | 'month' | 'year';
 export type HoldingCostMode = 'fixed' | 'percentage';
 
@@ -59,6 +61,8 @@ export interface ProcedureDetails {
 }
 
 export interface AnalysisResponse {
+  analyzed_input?: AnalysisRequest;
+  excluded_candidates?: { tier_index: number; min_quantity: number; max_quantity: number | null; unit_price: number; reason: string }[];
   recommended: CandidateEvaluation;
   alternatives: CandidateEvaluation[];
   current_comparison: CurrentQuantityComparison | null;
@@ -66,6 +70,7 @@ export interface AnalysisResponse {
 }
 
 export interface AssistantMessageRequest {
+  history?: { role: 'user' | 'assistant'; content: string }[];
   message: string;
   current_draft?: Partial<AnalysisRequest> | null;
   current_result?: AnalysisResponse | null;

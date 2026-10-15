@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { VoiceRecorderControl } from '../src/features/assistant/VoiceRecorderControl';
 import { apiClient } from '../src/services/api-client';
 import { App } from '../src/App';
-import { mockAssistantMessage, MOCK_TRANSCRIPTION_TEXT, resolveMockAnalysis } from '../src/mocks/reference-cases';
+import { mockAssistantMessage, MOCK_TRANSCRIPTION_TEXT, resolveMockAnalysis } from './fixtures/reference-cases';
 import type { TranscriptionResponse } from '../src/services/generated/types';
 
 class RecorderDouble {
@@ -47,12 +47,14 @@ beforeEach(() => {
   RecorderDouble.instances = [];
   RecorderDouble.supportedMime = 'audio/webm;codecs=opus';
   RecorderDouble.defaultMime = 'audio/mp4';
-  apiClient.setUseMocks(false);
+
   vi.spyOn(apiClient, 'transcribeAudio').mockResolvedValue({ text: 'Transcripción inicial.' });
 });
 
+beforeEach(() => { vi.spyOn(apiClient, 'checkHealth').mockResolvedValue({ status: 'ok', ai_available: false }); });
+
 afterEach(() => {
-  cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); apiClient.setUseMocks(true);
+  cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals();
   if (originalMediaDevices) Object.defineProperty(navigator, 'mediaDevices', originalMediaDevices);
   else Reflect.deleteProperty(navigator, 'mediaDevices');
 });
@@ -63,6 +65,15 @@ async function start() {
 }
 
 describe('Ciclo de vida del micrófono', () => {
+  it('detiene a los 60 segundos y libera inmediatamente el micrófono', async () => {
+    vi.useFakeTimers();
+    render(<VoiceRecorderControl onSendReviewedText={vi.fn()} />);
+    await start();
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    stops.forEach((stop) => expect(stop).toHaveBeenCalled());
+    expect(RecorderDouble.instances[0].state).toBe('inactive');
+    expect(apiClient.transcribeAudio).toHaveBeenCalledOnce();
+  });
   it('graba, cuenta segundos y libera todas las pistas antes de esperar la transcripción', async () => {
     vi.useFakeTimers();
     const onSend = vi.fn();
@@ -126,7 +137,7 @@ describe('Ciclo de vida del micrófono', () => {
     await start();
     expect((await screen.findByRole('alert')).textContent).toContain(message);
     expect(screen.getByRole('button', { name: 'Subir archivo de audio (.webm, .mp3, .wav, .m4a)' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Simular grabación de prueba' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Simular grabación de prueba' })).toBeNull();
   });
 
   it('gestiona un navegador sin MediaRecorder sin bloquear la contingencia', async () => {
@@ -135,8 +146,7 @@ describe('Ciclo de vida del micrófono', () => {
     await start();
     expect(screen.getByRole('alert').textContent).toContain('localhost o HTTPS');
     expect(getUserMedia).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Simular grabación de prueba' }));
-    expect(screen.getByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:')).toHaveProperty('value', MOCK_TRANSCRIPTION_TEXT);
+    expect(screen.getByRole('button', { name: 'Subir archivo de audio (.webm, .mp3, .wav, .m4a)' })).toBeDefined();
     expect(apiClient.transcribeAudio).not.toHaveBeenCalled();
   });
 
@@ -176,6 +186,13 @@ describe('Ciclo de vida del micrófono', () => {
 });
 
 describe('Audio subido, transcripción y revisión humana', () => {
+  it('rechaza archivos de más de 10 MB antes de enviar al servidor', async () => {
+    render(<VoiceRecorderControl onSendReviewedText={vi.fn()} />);
+    const file = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'largo.wav', { type: 'audio/wav' });
+    await userEvent.setup().upload(screen.getByLabelText('Archivo de audio para transcribir'), file);
+    expect(screen.getByRole('alert').textContent).toContain('supera 10 MB');
+    expect(apiClient.transcribeAudio).not.toHaveBeenCalled();
+  });
   it('sube un archivo y transmite exactamente el texto corregido después de confirmar', async () => {
     const onSend = vi.fn();
     render(<VoiceRecorderControl onSendReviewedText={onSend} />);
@@ -225,7 +242,7 @@ describe('Audio subido, transcripción y revisión humana', () => {
     expect(screen.queryByRole('button', { name: 'Enviar texto revisado al asistente' })).toBeNull();
   });
 
-  it('ignora una respuesta tardía tras cancelar, sin sobrescribir una simulación nueva', async () => {
+  it('ignora una respuesta tardía tras cancelar, sin sobrescribir una transcripción nueva', async () => {
     let resolveTranscription!: (response: TranscriptionResponse) => void;
     vi.mocked(apiClient.transcribeAudio).mockImplementationOnce(() => new Promise((resolve) => { resolveTranscription = resolve; }));
     render(<VoiceRecorderControl onSendReviewedText={vi.fn()} />);
@@ -233,23 +250,25 @@ describe('Audio subido, transcripción y revisión humana', () => {
     await user.upload(screen.getByLabelText('Archivo de audio para transcribir'), new File(['audio'], 'voz.webm', { type: 'audio/webm' }));
     expect(screen.getByText('Transcribiendo audio...')).toBeDefined();
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    await user.click(screen.getByRole('button', { name: 'Simular grabación de prueba' }));
+    vi.mocked(apiClient.transcribeAudio).mockResolvedValueOnce({ text: MOCK_TRANSCRIPTION_TEXT });
+    await user.upload(screen.getByLabelText('Archivo de audio para transcribir'), new File(['nuevo'], 'nuevo.webm', { type: 'audio/webm' }));
+    await screen.findByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:');
     await act(async () => resolveTranscription({ text: 'Respuesta antigua' }));
     expect(screen.getByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:')).toHaveProperty('value', MOCK_TRANSCRIPTION_TEXT);
-    expect(screen.getByText(/Grabación de prueba simulada/)).toBeDefined();
+    expect(screen.queryByText('Respuesta antigua')).toBeNull();
   });
 });
 
 describe('Voz integrada con el flujo de Texto', () => {
   beforeEach(() => {
-    apiClient.setUseMocks(true);
+
     vi.spyOn(apiClient, 'runAnalysis').mockImplementation(async (request) => resolveMockAnalysis(request));
     vi.spyOn(apiClient, 'sendAssistantMessage').mockImplementation(async (payload) => mockAssistantMessage(payload));
   });
 
   async function openVoice() {
     render(<App />);
-    await screen.findByText('RECOMENDACIÓN ÓPTIMA VERIFICADA');
+    await screen.findByText('Compra recomendada');
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Asistente IA (Texto, Foto y Voz)' }));
     const assistant = within(screen.getByRole('complementary', { name: 'Asistente inteligente' }));
@@ -257,11 +276,13 @@ describe('Voz integrada con el flujo de Texto', () => {
     return { user, assistant };
   }
 
-  it('simular no usa hardware ni proveedor; solo el texto revisado crea un borrador, y solo aplicar recalcula', async () => {
+  it('subir audio no usa hardware; solo el texto revisado crea un borrador, y solo aplicar recalcula', async () => {
     const { user, assistant } = await openVoice();
-    await user.click(assistant.getByRole('button', { name: 'Simular grabación de prueba' }));
+    vi.mocked(apiClient.transcribeAudio).mockResolvedValueOnce({ text: MOCK_TRANSCRIPTION_TEXT });
+    await user.upload(assistant.getByLabelText('Archivo de audio para transcribir'), new File(['voz'], 'voz.webm', { type: 'audio/webm' }));
+    await assistant.findByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:');
     expect(getUserMedia).not.toHaveBeenCalled();
-    expect(apiClient.transcribeAudio).not.toHaveBeenCalled();
+    expect(apiClient.transcribeAudio).toHaveBeenCalledOnce();
     expect(apiClient.sendAssistantMessage).not.toHaveBeenCalled();
     expect(apiClient.runAnalysis).toHaveBeenCalledTimes(1);
     const exact = `  ${MOCK_TRANSCRIPTION_TEXT}\n  `;
@@ -284,6 +305,6 @@ describe('Voz integrada con el flujo de Texto', () => {
     await user.click(action === 'Texto' ? assistant.getByRole('tab', { name: 'Texto' }) : assistant.getByRole('button', { name: 'Cerrar asistente' }));
     stops.forEach((stop) => expect(stop).toHaveBeenCalled());
     expect(apiClient.transcribeAudio).not.toHaveBeenCalled();
-    expect((screen.getByRole('button', { name: 'Calcular compra óptima' }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Calcular mejor compra' }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

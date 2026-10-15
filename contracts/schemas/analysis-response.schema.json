@@ -1,0 +1,525 @@
+{
+  "$defs": {
+    "AnalysisRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "product_name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Product Name",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "demand": {
+          "$ref": "#/$defs/Demand"
+        },
+        "order_cost": {
+          "exclusiveMinimum": 0,
+          "title": "Order Cost",
+          "type": "number"
+        },
+        "holding_cost": {
+          "$ref": "#/$defs/HoldingCost"
+        },
+        "days_per_year": {
+          "maximum": 366,
+          "minimum": 1,
+          "title": "Days Per Year",
+          "type": "integer"
+        },
+        "discount_tiers": {
+          "items": {
+            "$ref": "#/$defs/DiscountTier"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Discount Tiers",
+          "type": "array"
+        },
+        "current_order_quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Order Quantity"
+        }
+      },
+      "required": [
+        "product_name",
+        "currency",
+        "demand",
+        "order_cost",
+        "holding_cost",
+        "days_per_year",
+        "discount_tiers"
+      ],
+      "title": "AnalysisRequest",
+      "type": "object"
+    },
+    "AnnualCosts": {
+      "additionalProperties": false,
+      "properties": {
+        "purchase": {
+          "minimum": 0,
+          "title": "Purchase",
+          "type": "number"
+        },
+        "ordering": {
+          "minimum": 0,
+          "title": "Ordering",
+          "type": "number"
+        },
+        "holding": {
+          "minimum": 0,
+          "title": "Holding",
+          "type": "number"
+        },
+        "total": {
+          "minimum": 0,
+          "title": "Total",
+          "type": "number"
+        }
+      },
+      "required": [
+        "purchase",
+        "ordering",
+        "holding",
+        "total"
+      ],
+      "title": "AnnualCosts",
+      "type": "object"
+    },
+    "AnnualHoldingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "fixed",
+            "percentage"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "const": "year",
+          "default": "year",
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "value"
+      ],
+      "title": "AnnualHoldingCost",
+      "type": "object"
+    },
+    "CalculationStep": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "formula": {
+          "title": "Formula",
+          "type": "string"
+        },
+        "substitution": {
+          "title": "Substitution",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "formula",
+        "substitution",
+        "result"
+      ],
+      "title": "CalculationStep",
+      "type": "object"
+    },
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "tier_index": {
+          "minimum": 0,
+          "title": "Tier Index",
+          "type": "integer"
+        },
+        "min_quantity": {
+          "minimum": 0,
+          "title": "Min Quantity",
+          "type": "integer"
+        },
+        "max_quantity_exclusive": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Max Quantity Exclusive"
+        },
+        "unit_price": {
+          "exclusiveMinimum": 0,
+          "title": "Unit Price",
+          "type": "number"
+        },
+        "annual_holding_per_unit": {
+          "exclusiveMinimum": 0,
+          "title": "Annual Holding Per Unit",
+          "type": "number"
+        },
+        "theoretical_eoq": {
+          "exclusiveMinimum": 0,
+          "title": "Theoretical Eoq",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "feasible",
+            "adjusted",
+            "excluded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "evaluated_quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Evaluated Quantity"
+        },
+        "annual_costs": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnnualCosts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "order": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OrderEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "tier_index",
+        "min_quantity",
+        "max_quantity_exclusive",
+        "unit_price",
+        "annual_holding_per_unit",
+        "theoretical_eoq",
+        "status",
+        "evaluated_quantity",
+        "annual_costs",
+        "reason"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "CurrentComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/OrderEvaluation"
+        },
+        "annual_savings": {
+          "title": "Annual Savings",
+          "type": "number"
+        },
+        "savings_percentage": {
+          "title": "Savings Percentage",
+          "type": "number"
+        }
+      },
+      "required": [
+        "current",
+        "annual_savings",
+        "savings_percentage"
+      ],
+      "title": "CurrentComparison",
+      "type": "object"
+    },
+    "Demand": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "period"
+      ],
+      "title": "Demand",
+      "type": "object"
+    },
+    "DiscountTier": {
+      "additionalProperties": false,
+      "properties": {
+        "min_quantity": {
+          "minimum": 0,
+          "title": "Min Quantity",
+          "type": "integer"
+        },
+        "unit_price": {
+          "exclusiveMinimum": 0,
+          "title": "Unit Price",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min_quantity",
+        "unit_price"
+      ],
+      "title": "DiscountTier",
+      "type": "object"
+    },
+    "HoldingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "fixed",
+            "percentage"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "value",
+        "period"
+      ],
+      "title": "HoldingCost",
+      "type": "object"
+    },
+    "NormalizedInput": {
+      "additionalProperties": false,
+      "properties": {
+        "annual_demand": {
+          "exclusiveMinimum": 0,
+          "title": "Annual Demand",
+          "type": "number"
+        },
+        "days_per_year": {
+          "maximum": 366,
+          "minimum": 1,
+          "title": "Days Per Year",
+          "type": "integer"
+        },
+        "holding_cost": {
+          "$ref": "#/$defs/AnnualHoldingCost"
+        }
+      },
+      "required": [
+        "annual_demand",
+        "days_per_year",
+        "holding_cost"
+      ],
+      "title": "NormalizedInput",
+      "type": "object"
+    },
+    "OrderEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "tier_index": {
+          "minimum": 0,
+          "title": "Tier Index",
+          "type": "integer"
+        },
+        "quantity": {
+          "exclusiveMinimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "unit_price": {
+          "exclusiveMinimum": 0,
+          "title": "Unit Price",
+          "type": "number"
+        },
+        "annual_holding_per_unit": {
+          "exclusiveMinimum": 0,
+          "title": "Annual Holding Per Unit",
+          "type": "number"
+        },
+        "investment_per_order": {
+          "exclusiveMinimum": 0,
+          "title": "Investment Per Order",
+          "type": "number"
+        },
+        "orders_per_year": {
+          "exclusiveMinimum": 0,
+          "title": "Orders Per Year",
+          "type": "number"
+        },
+        "cycle_days": {
+          "exclusiveMinimum": 0,
+          "title": "Cycle Days",
+          "type": "number"
+        },
+        "annual_costs": {
+          "$ref": "#/$defs/AnnualCosts"
+        }
+      },
+      "required": [
+        "tier_index",
+        "quantity",
+        "unit_price",
+        "annual_holding_per_unit",
+        "investment_per_order",
+        "orders_per_year",
+        "cycle_days",
+        "annual_costs"
+      ],
+      "title": "OrderEvaluation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "model": {
+      "const": "all_units_discount",
+      "default": "all_units_discount",
+      "title": "Model",
+      "type": "string"
+    },
+    "data_source": {
+      "enum": [
+        "calculated",
+        "reference_example"
+      ],
+      "title": "Data Source",
+      "type": "string"
+    },
+    "input": {
+      "$ref": "#/$defs/AnalysisRequest"
+    },
+    "normalized": {
+      "$ref": "#/$defs/NormalizedInput"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "minItems": 1,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "recommended": {
+      "$ref": "#/$defs/OrderEvaluation"
+    },
+    "comparison": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CurrentComparison"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/CalculationStep"
+      },
+      "title": "Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "data_source",
+    "input",
+    "normalized",
+    "candidates",
+    "recommended",
+    "comparison",
+    "assumptions",
+    "steps"
+  ],
+  "title": "AnalysisResponse",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

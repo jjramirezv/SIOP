@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   mockAssistantMessage, mockExtractImage, mockTranscribeAudio,
   REFERENCE_CASES, resolveMockAnalysis,
-} from '../src/mocks/reference-cases';
+} from './fixtures/reference-cases';
 
 describe('Casos de aceptación del contrato', () => {
   it.each([

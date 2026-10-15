@@ -17,7 +17,7 @@ interface AssistantPanelProps {
   currentResult: AnalysisResponse | null;
   onApplyDraft: (draft: Partial<AnalysisRequest>) => boolean;
   isCalculating: boolean;
-  useMocks: boolean;
+  aiAvailable?: boolean | null;
 }
 
 interface ChatMessage {
@@ -26,7 +26,6 @@ interface ChatMessage {
   text: string;
   response?: AssistantResponse;
   draftStatus?: 'pending' | 'applied' | 'discarded';
-  source?: 'mock' | 'real';
 }
 
 const tabs = [
@@ -37,7 +36,7 @@ const tabs = [
 type InputTab = typeof tabs[number]['id'];
 const chipClass = 'rounded-full border border-indigo-200 bg-white px-3 py-1.5 text-xs font-medium text-indigo-900 hover:bg-indigo-50 disabled:opacity-40 cursor-pointer focus-visible:outline-2 focus-visible:outline-indigo-600';
 
-export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, onApplyDraft, isCalculating, useMocks }: AssistantPanelProps) {
+export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, onApplyDraft, isCalculating, aiAvailable }: AssistantPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([{
     id: 0, role: 'assistant', text: 'Cuéntame tu ejercicio o sube una cotización. Prepararé un borrador para que lo revises antes de aplicarlo a la calculadora.',
   }]);
@@ -53,7 +52,6 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
   const focusExample = useRef(false);
   const history = useRef<HTMLDivElement>(null);
   const alive = useRef(true);
-  const imageSource = useRef<'mock' | 'real'>('mock');
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useEffect(() => { if (isOpen) closeButton.current?.focus(); }, [isOpen]);
   useEffect(() => {
@@ -61,24 +59,23 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
   }, [tab, text]);
   useEffect(() => { if (history.current) history.current.scrollTop = history.current.scrollHeight; }, [messages, busy, isOpen]);
 
-  function addResponse(response: AssistantResponse, source: 'mock' | 'real') {
+  function addResponse(response: AssistantResponse) {
     if (!alive.current) return;
     const id = nextId.current++;
-    setMessages((previous) => [...previous, { id, role: 'assistant', text: response.reply_message, response, source, draftStatus: 'pending' }]);
+    setMessages((previous) => [...previous, { id, role: 'assistant', text: response.reply_message, response, draftStatus: 'pending' }]);
   }
 
   async function sendMessage(message: string) {
     if (!message.trim() || busy) return;
-    const source = apiClient.useMocks ? 'mock' : 'real';
     setBusy(true); setError(''); setErrorKind('service'); setFailedText(''); setText('');
     const id = nextId.current++;
     setMessages((previous) => [...previous, { id, role: 'user', text: message }]);
     try {
       const response = await apiClient.sendAssistantMessage({
-        message, current_draft: structuredClone(currentDraft),
+        message, history: messages.filter((entry) => entry.id !== 0).slice(-10).map((entry) => ({ role: entry.role, content: entry.text.slice(0, 4000) })), current_draft: structuredClone(currentDraft),
         current_result: currentResult ? structuredClone(currentResult) : null,
       });
-      addResponse(response, source);
+      addResponse(response);
     } catch (cause) {
       if (alive.current) {
         setError(cause instanceof Error ? cause.message : 'No pudimos interpretar el mensaje. Vuelve a intentarlo.');
@@ -106,14 +103,15 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
   if (!isOpen) return null;
   return (
     <aside id="assistant-panel" aria-labelledby="assistant-heading" onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose(); } }}
-      className="w-full sm:w-[460px] sm:max-w-full xl:sticky xl:top-20 xl:shrink-0 h-[calc(100dvh-6rem)] min-h-[480px] flex flex-col overflow-hidden border border-indigo-200 bg-white shadow-md sm:rounded-xl">
+      className="desk-assistant desk-glass flex flex-col overflow-hidden">
       <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-indigo-50/70 p-4">
         <div>
           <h2 id="assistant-heading" className="flex items-center gap-2 text-base font-semibold text-indigo-950"><Sparkles size={18} aria-hidden="true" />Asistente inteligente</h2>
-          <p className="mt-1 text-xs leading-5 text-slate-600">{useMocks ? 'Modo simulado: respuestas de ejemplo.' : 'Modo real: interpretación mediante la API.'} Tú decides qué datos aplicar.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-600">Interpretación mediante la API. Tú decides qué datos aplicar.</p>
         </div>
         <button ref={closeButton} type="button" onClick={onClose} aria-label="Cerrar asistente" className="rounded-lg p-2 text-slate-600 hover:bg-white focus-visible:outline-2 focus-visible:outline-indigo-600"><X size={18} aria-hidden="true" /></button>
       </header>
+      {aiAvailable === false && <p role="status" className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-950">El asistente necesita configurar Gemini en el servidor. Puedes seguir calculando con el formulario manual.</p>}
       <div className="flex shrink-0 flex-wrap gap-2 border-b border-slate-100 p-3">
         <button type="button" className={chipClass} disabled={busy || !currentResult} title={!currentResult ? 'Calcula con los datos actuales para explicar el resultado vigente.' : undefined} onClick={() => void sendMessage('Explícame el resultado')}>Explícame el resultado</button>
         <button type="button" className={chipClass} disabled={busy} onClick={() => void sendMessage('Prueba otro escenario')}>Prueba otro escenario</button>
@@ -122,7 +120,7 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
       <div ref={history} role="log" aria-label="Historial de conversación" aria-live="polite" className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         {messages.map((message) => <article key={message.id} className="space-y-2">
           <div className={clsx('rounded-xl px-3 py-2.5 text-sm leading-6 whitespace-pre-wrap break-words', message.role === 'user' ? 'ml-6 bg-indigo-600 text-white' : 'mr-3 bg-slate-50 text-slate-800')}>
-            <p className={clsx('mb-1 text-xs font-semibold', message.role === 'user' ? 'text-indigo-100' : 'text-slate-500')}>{message.role === 'user' ? 'Tú' : 'Asistente'}{message.source ? ` · ${message.source === 'mock' ? 'Respuesta simulada' : 'Respuesta de API real'}` : ''}</p>
+            <p className={clsx('mb-1 text-xs font-semibold', message.role === 'user' ? 'text-indigo-100' : 'text-slate-500')}>{message.role === 'user' ? 'Tú' : 'Asistente'}</p>
             <p>{message.text}</p>
           </div>
           {message.response?.proposed_data && message.draftStatus === 'pending' && <DraftReviewCard proposedData={message.response.proposed_data} missingFields={message.response.missing_fields} fieldsToReview={message.response.fields_to_review} onApplyDraft={(draft) => applyDraft(message.id, draft)} onDiscard={() => updateDraftStatus(message.id, 'discarded')} isApplying={isCalculating} />}
@@ -154,17 +152,16 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
         <div role="tabpanel" id="assistant-input-text" aria-labelledby="assistant-tab-text" hidden={tab !== 'text'}>
           <form onSubmit={(event) => { event.preventDefault(); void sendMessage(text); }} className="space-y-2">
             <label htmlFor="assistant-message" className="sr-only">Mensaje para el asistente</label>
-            <textarea ref={textarea} id="assistant-message" value={text} onChange={(event) => setText(event.target.value)} rows={3} placeholder="Escribe tu ejercicio o una pregunta…" disabled={busy} className={inputClass()} />
+            <textarea ref={textarea} id="assistant-message" value={text} onChange={(event) => setText(event.target.value)} maxLength={4000} rows={3} placeholder="Escribe tu ejercicio o una pregunta…" disabled={busy} className={inputClass()} />
             <button type="submit" disabled={busy || !text.trim()} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 cursor-pointer"><Send size={15} aria-hidden="true" />Enviar</button>
           </form>
         </div>
         <div role="tabpanel" id="assistant-input-image" aria-labelledby="assistant-tab-image" hidden={tab !== 'image'}>
-          <ImageExtractorUploader disabled={busy} onRequestStart={(filename) => {
-            imageSource.current = apiClient.useMocks ? 'mock' : 'real';
+          <ImageExtractorUploader currentDraft={currentDraft} disabled={busy} onRequestStart={(filename) => {
             setBusy(true); setError(''); setErrorKind('service'); setFailedText('');
             const id = nextId.current++;
             setMessages((previous) => [...previous, { id, role: 'user', text: `Fotografía: ${filename}` }]);
-          }} onResponse={(response) => addResponse(response, imageSource.current)} onRequestEnd={() => { if (alive.current) setBusy(false); }} onError={(message) => { if (alive.current) setError(message); }} />
+          }} onResponse={addResponse} onRequestEnd={() => { if (alive.current) setBusy(false); }} onError={(message) => { if (alive.current) setError(message); }} />
         </div>
         <div role="tabpanel" id="assistant-input-voice" aria-labelledby="assistant-tab-voice" hidden={tab !== 'voice'}>
           <VoiceRecorderControl onSendReviewedText={sendMessage} disabled={busy} isActive={tab === 'voice'} />

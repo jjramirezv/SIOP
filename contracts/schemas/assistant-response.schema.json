@@ -1,0 +1,333 @@
+{
+  "$defs": {
+    "DraftDemand": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "month",
+                "year"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        }
+      },
+      "title": "DraftDemand",
+      "type": "object"
+    },
+    "DraftHoldingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "fixed",
+                "percentage"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "month",
+                "year"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        }
+      },
+      "title": "DraftHoldingCost",
+      "type": "object"
+    },
+    "DraftTier": {
+      "additionalProperties": false,
+      "properties": {
+        "min_quantity": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Quantity"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Price"
+        }
+      },
+      "title": "DraftTier",
+      "type": "object"
+    },
+    "FieldIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "message"
+      ],
+      "title": "FieldIssue",
+      "type": "object"
+    },
+    "InventoryDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "product_name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product Name"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "demand": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DraftDemand"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "order_cost": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Order Cost"
+        },
+        "holding_cost": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DraftHoldingCost"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "days_per_year": {
+          "anyOf": [
+            {
+              "maximum": 366,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Days Per Year"
+        },
+        "discount_tiers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DraftTier"
+              },
+              "maxItems": 20,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Discount Tiers"
+        },
+        "current_order_quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Order Quantity"
+        }
+      },
+      "title": "InventoryDraft",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "data_source": {
+      "enum": [
+        "assistant",
+        "reference_example"
+      ],
+      "title": "Data Source",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "clarify",
+        "review_input",
+        "explain",
+        "review_scenario"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "proposed_input": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InventoryDraft"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "missing_fields": {
+      "items": {
+        "$ref": "#/$defs/FieldIssue"
+      },
+      "title": "Missing Fields",
+      "type": "array"
+    },
+    "review_fields": {
+      "items": {
+        "$ref": "#/$defs/FieldIssue"
+      },
+      "title": "Review Fields",
+      "type": "array"
+    },
+    "requires_confirmation": {
+      "title": "Requires Confirmation",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "data_source",
+    "message",
+    "action",
+    "proposed_input",
+    "missing_fields",
+    "review_fields",
+    "requires_confirmation"
+  ],
+  "title": "AssistantResponse",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,211 @@
+{
+  "contract_version": "1.0.0",
+  "model": "all_units_discount",
+  "data_source": "reference_example",
+  "input": {
+    "product_name": "Caso ILY - Insumos Industriales",
+    "currency": "USD",
+    "demand": {
+      "value": 10000.0,
+      "period": "year"
+    },
+    "order_cost": 9.0,
+    "holding_cost": {
+      "mode": "percentage",
+      "value": 10.0,
+      "period": "year"
+    },
+    "days_per_year": 365,
+    "discount_tiers": [
+      {
+        "min_quantity": 0,
+        "unit_price": 20.0
+      },
+      {
+        "min_quantity": 250,
+        "unit_price": 18.0
+      },
+      {
+        "min_quantity": 1000,
+        "unit_price": 15.0
+      }
+    ],
+    "current_order_quantity": 316
+  },
+  "normalized": {
+    "annual_demand": 10000.0,
+    "days_per_year": 365,
+    "holding_cost": {
+      "mode": "percentage",
+      "value": 10.0,
+      "period": "year"
+    }
+  },
+  "candidates": [
+    {
+      "tier_index": 0,
+      "min_quantity": 0,
+      "max_quantity_exclusive": 250,
+      "unit_price": 20.0,
+      "annual_holding_per_unit": 2.0,
+      "theoretical_eoq": 300.0,
+      "status": "excluded",
+      "evaluated_quantity": null,
+      "annual_costs": null,
+      "reason": "La CEP alcanza o supera el siguiente tramo; se compara la alternativa de ese tramo.",
+      "order": null
+    },
+    {
+      "tier_index": 1,
+      "min_quantity": 250,
+      "max_quantity_exclusive": 1000,
+      "unit_price": 18.0,
+      "annual_holding_per_unit": 1.8,
+      "theoretical_eoq": 316.22776601683796,
+      "status": "feasible",
+      "evaluated_quantity": 316,
+      "annual_costs": {
+        "purchase": 180000.0,
+        "ordering": 284.8101265822785,
+        "holding": 284.4,
+        "total": 180569.21012658227
+      },
+      "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+      "order": {
+        "tier_index": 1,
+        "quantity": 316,
+        "unit_price": 18.0,
+        "annual_holding_per_unit": 1.8,
+        "investment_per_order": 5688.0,
+        "orders_per_year": 31.645569620253166,
+        "cycle_days": 11.534,
+        "annual_costs": {
+          "purchase": 180000.0,
+          "ordering": 284.8101265822785,
+          "holding": 284.4,
+          "total": 180569.21012658227
+        }
+      }
+    },
+    {
+      "tier_index": 2,
+      "min_quantity": 1000,
+      "max_quantity_exclusive": null,
+      "unit_price": 15.0,
+      "annual_holding_per_unit": 1.5,
+      "theoretical_eoq": 346.41016151377545,
+      "status": "adjusted",
+      "evaluated_quantity": 1000,
+      "annual_costs": {
+        "purchase": 150000.0,
+        "ordering": 90.0,
+        "holding": 750.0,
+        "total": 150840.0
+      },
+      "reason": "Se ajusta al mínimo del descuento.",
+      "order": {
+        "tier_index": 2,
+        "quantity": 1000,
+        "unit_price": 15.0,
+        "annual_holding_per_unit": 1.5,
+        "investment_per_order": 15000.0,
+        "orders_per_year": 10.0,
+        "cycle_days": 36.5,
+        "annual_costs": {
+          "purchase": 150000.0,
+          "ordering": 90.0,
+          "holding": 750.0,
+          "total": 150840.0
+        }
+      }
+    }
+  ],
+  "recommended": {
+    "tier_index": 2,
+    "quantity": 1000,
+    "unit_price": 15.0,
+    "annual_holding_per_unit": 1.5,
+    "investment_per_order": 15000.0,
+    "orders_per_year": 10.0,
+    "cycle_days": 36.5,
+    "annual_costs": {
+      "purchase": 150000.0,
+      "ordering": 90.0,
+      "holding": 750.0,
+      "total": 150840.0
+    }
+  },
+  "comparison": {
+    "current": {
+      "tier_index": 1,
+      "quantity": 316,
+      "unit_price": 18.0,
+      "annual_holding_per_unit": 1.8,
+      "investment_per_order": 5688.0,
+      "orders_per_year": 31.645569620253166,
+      "cycle_days": 11.534,
+      "annual_costs": {
+        "purchase": 180000.0,
+        "ordering": 284.8101265822785,
+        "holding": 284.4,
+        "total": 180569.21012658227
+      }
+    },
+    "annual_savings": 29729.21012658228,
+    "savings_percentage": 16.464163577910966
+  },
+  "assumptions": [
+    "Demanda constante, reposición instantánea y sin faltantes.",
+    "El descuento aplica a todas las unidades del pedido.",
+    "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+    "Un año tiene 12 meses y 365 días de cálculo.",
+    "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+    "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+    "Los importes conservan precisión interna y se redondean solo al presentar.",
+    "La moneda es una etiqueta; no se convierten divisas."
+  ],
+  "steps": [
+    {
+      "title": "Demanda anual",
+      "formula": "D = demanda × períodos por año",
+      "substitution": "10000 × 1",
+      "result": "10000.00 unidades/año"
+    },
+    {
+      "title": "Mantenimiento anual",
+      "formula": "h_j = tasa anual / 100 × precio_j",
+      "substitution": "10 × 1",
+      "result": "10.00 % anual, aplicado a cada precio"
+    },
+    {
+      "title": "CEP del precio 20.00; tramo [0, 250)",
+      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+      "substitution": "sqrt(2 × 10000.00 × 9.00 / 2.00)",
+      "result": "CEP teórica 300.00; La CEP alcanza o supera el siguiente tramo; se compara la alternativa de ese tramo."
+    },
+    {
+      "title": "CEP del precio 18.00; tramo [250, 1000)",
+      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+      "substitution": "sqrt(2 × 10000.00 × 9.00 / 1.80)",
+      "result": "CEP teórica 316.23; cantidad entera evaluada 316. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+    },
+    {
+      "title": "CEP del precio 15.00; tramo desde 1000",
+      "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+      "substitution": "sqrt(2 × 10000.00 × 9.00 / 1.50)",
+      "result": "CEP teórica 346.41; cantidad entera evaluada 1000. Se ajusta al mínimo del descuento."
+    },
+    {
+      "title": "Alternativa de menor costo anual",
+      "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+      "substitution": "150000.00 + 90.00 + 750.00",
+      "result": "150840.00 USD/año; 1000 unidades por pedido"
+    },
+    {
+      "title": "Frecuencia y duración del ciclo",
+      "formula": "N = D / Q; T = Q / D × días por año",
+      "substitution": "N = 10000.00 / 1000; T = 1000 / 10000.00 × 365",
+      "result": "10.00 pedidos/año; 36.50 días entre pedidos"
+    }
+  ]
+}

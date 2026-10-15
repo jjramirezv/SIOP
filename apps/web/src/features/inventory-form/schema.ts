@@ -12,7 +12,7 @@ const discountTierSchema = z.object({
 
 const discountTiersSchema = z.array(discountTierSchema, {
   error: 'Agrega los niveles de precio por volumen',
-}).min(2, 'Agrega al menos 2 tramos de descuento').superRefine((tiers, ctx) => {
+}).min(1, 'Agrega al menos un tramo de precio').max(20, 'Usa como máximo 20 tramos de precio').superRefine((tiers, ctx) => {
   // Zod antepone discount_tiers a estas rutas relativas del arreglo.
   if (tiers.length > 0 && tiers[0].min_quantity !== 0) {
     ctx.addIssue({
@@ -39,13 +39,13 @@ const discountTiersSchema = z.array(discountTierSchema, {
 
 export const analysisFormSchema = z.object({
   product_name: z.string({ error: 'Escribe el nombre del producto que estás comprando' })
-    .trim().min(1, 'Escribe el nombre del producto que estás comprando'),
+    .trim().min(1, 'Escribe el nombre del producto que estás comprando').max(120, 'Usa como máximo 120 caracteres'),
   currency: z.string({ error: 'Elige soles (PEN) o dólares (USD)' })
     .refine((value) => value === 'PEN' || value === 'USD', 'Elige soles (PEN) o dólares (USD)'),
   demand: positiveNumber('Ingresa cuántas unidades vendes (debe ser mayor a 0)'),
   demand_period: z.enum(['year', 'month', 'day'], { error: 'Elige si vendes esa cantidad al año, al mes o al día' }),
   days_per_year: positiveNumber('Los días trabajados por año deben ser mayores a 0')
-    .int('Ingresa una cantidad entera de días trabajados por año'),
+    .int('Ingresa una cantidad entera de días trabajados por año').max(366, 'El año puede tener como máximo 366 días'),
   ordering_cost: positiveNumber('El costo por hacer cada pedido debe ser mayor a 0'),
   holding_cost_mode: z.enum(['percentage', 'fixed'], { error: 'Elige un porcentaje del precio o un monto fijo por unidad' }),
   holding_cost_value: positiveNumber('El costo de guardar cada unidad debe ser mayor a 0'),

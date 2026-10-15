@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "Demand": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "period"
+      ],
+      "title": "Demand",
+      "type": "object"
+    },
+    "DiscountTier": {
+      "additionalProperties": false,
+      "properties": {
+        "min_quantity": {
+          "minimum": 0,
+          "title": "Min Quantity",
+          "type": "integer"
+        },
+        "unit_price": {
+          "exclusiveMinimum": 0,
+          "title": "Unit Price",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min_quantity",
+        "unit_price"
+      ],
+      "title": "DiscountTier",
+      "type": "object"
+    },
+    "HoldingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "fixed",
+            "percentage"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "value",
+        "period"
+      ],
+      "title": "HoldingCost",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "product_name": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Product Name",
+      "type": "string"
+    },
+    "currency": {
+      "pattern": "^[A-Z]{3}$",
+      "title": "Currency",
+      "type": "string"
+    },
+    "demand": {
+      "$ref": "#/$defs/Demand"
+    },
+    "order_cost": {
+      "exclusiveMinimum": 0,
+      "title": "Order Cost",
+      "type": "number"
+    },
+    "holding_cost": {
+      "$ref": "#/$defs/HoldingCost"
+    },
+    "days_per_year": {
+      "maximum": 366,
+      "minimum": 1,
+      "title": "Days Per Year",
+      "type": "integer"
+    },
+    "discount_tiers": {
+      "items": {
+        "$ref": "#/$defs/DiscountTier"
+      },
+      "maxItems": 20,
+      "minItems": 1,
+      "title": "Discount Tiers",
+      "type": "array"
+    },
+    "current_order_quantity": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Current Order Quantity"
+    }
+  },
+  "required": [
+    "product_name",
+    "currency",
+    "demand",
+    "order_cost",
+    "holding_cost",
+    "days_per_year",
+    "discount_tiers"
+  ],
+  "title": "AnalysisRequest",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

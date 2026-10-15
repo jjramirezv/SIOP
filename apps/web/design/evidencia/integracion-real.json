@@ -1,0 +1,73 @@
+{
+  "url": "http://localhost:5173/",
+  "checked_at": "2026-10-15T06:02:17.203Z",
+  "ai_live_verified": false,
+  "ai_limitation": "Se necesita clave y modelo de Gemini para comprobar interpretación/transcripción con el proveedor real.",
+  "checks": [
+    {
+      "check": "Salud a través del proxy",
+      "status": "ok",
+      "ai_configured": false
+    },
+    {
+      "check": "Motor real ily",
+      "quantity": 1000,
+      "total": 150840
+    },
+    {
+      "check": "Motor real wohl",
+      "quantity": 1000,
+      "total": 24725
+    },
+    {
+      "check": "Motor real sensibilidad_a",
+      "quantity": 500,
+      "total": 47522
+    },
+    {
+      "check": "Motor real sensibilidad_b",
+      "quantity": 200,
+      "total": 48520
+    },
+    {
+      "check": "200/mes equivale a 2400/año",
+      "total": 47522
+    },
+    {
+      "check": "Demanda arbitraria calculada en API",
+      "demand": 237,
+      "period": "month",
+      "quantity": 500,
+      "total": 56082.32
+    },
+    {
+      "check": "Mantenimiento 5 → 10 y protección de datos antiguos",
+      "quantity": 200
+    },
+    {
+      "check": "Tabla adaptable sin desbordamiento",
+      "width": 1366
+    },
+    {
+      "check": "Tabla adaptable sin desbordamiento",
+      "width": 390
+    },
+    {
+      "check": "Tabla adaptable sin desbordamiento",
+      "width": 320
+    },
+    {
+      "check": "Texto real sin credenciales: error 503 recuperable, sin borrador inventado"
+    },
+    {
+      "check": "Fotografía real y contexto llegan a API; 503 sin configuración"
+    },
+    {
+      "check": "MediaRecorder produce WebM válido para API; 503 recuperable sin credenciales"
+    },
+    {
+      "check": "Calculadora manual disponible después de fallos de IA"
+    }
+  ],
+  "page_errors": []
+}

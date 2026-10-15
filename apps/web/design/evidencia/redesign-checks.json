@@ -1,0 +1,294 @@
+{
+  "checkedAt": "2026-10-15T05:31:17.295Z",
+  "checks": [
+    {
+      "label": "Referencia ily",
+      "quantity": "1,000",
+      "annual": "150,840.00"
+    },
+    {
+      "label": "Referencia wohl",
+      "quantity": "1,000",
+      "annual": "24,725.00"
+    },
+    {
+      "label": "Referencia sensibilidad_b",
+      "quantity": "200",
+      "annual": "48,520.00"
+    },
+    {
+      "label": "Referencia sensibilidad_a",
+      "quantity": "500",
+      "annual": "47,522.00"
+    },
+    {
+      "label": "Comparar 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 768
+    },
+    {
+      "label": "Tabla 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 768
+    },
+    {
+      "label": "Desglose 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 833
+    },
+    {
+      "label": "Resumen 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 768
+    },
+    {
+      "label": "Procedimiento 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 1863
+    },
+    {
+      "label": "Ventas 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 1863
+    },
+    {
+      "label": "Precios 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 1863
+    },
+    {
+      "label": "Costos 1366",
+      "width": 1366,
+      "actual": 1366,
+      "height": 1863
+    },
+    {
+      "label": "Comparar 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 768
+    },
+    {
+      "label": "Tabla 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 768
+    },
+    {
+      "label": "Desglose 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 818
+    },
+    {
+      "label": "Resumen 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 946
+    },
+    {
+      "label": "Procedimiento 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 2096
+    },
+    {
+      "label": "Ventas 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 2096
+    },
+    {
+      "label": "Precios 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 2096
+    },
+    {
+      "label": "Costos 1024",
+      "width": 1024,
+      "actual": 1024,
+      "height": 2096
+    },
+    {
+      "label": "Comparar 850",
+      "width": 850,
+      "actual": 850,
+      "height": 1290
+    },
+    {
+      "label": "Tabla 850",
+      "width": 850,
+      "actual": 850,
+      "height": 1265
+    },
+    {
+      "label": "Desglose 850",
+      "width": 850,
+      "actual": 850,
+      "height": 1357
+    },
+    {
+      "label": "Resumen 850",
+      "width": 850,
+      "actual": 850,
+      "height": 1485
+    },
+    {
+      "label": "Procedimiento 850",
+      "width": 850,
+      "actual": 850,
+      "height": 2636
+    },
+    {
+      "label": "Ventas 850",
+      "width": 850,
+      "actual": 850,
+      "height": 2822
+    },
+    {
+      "label": "Precios 850",
+      "width": 850,
+      "actual": 850,
+      "height": 2720
+    },
+    {
+      "label": "Costos 850",
+      "width": 850,
+      "actual": 850,
+      "height": 2636
+    },
+    {
+      "label": "Comparar 390",
+      "width": 390,
+      "actual": 390,
+      "height": 1503
+    },
+    {
+      "label": "Tabla 390",
+      "width": 390,
+      "actual": 390,
+      "height": 1455
+    },
+    {
+      "label": "Desglose 390",
+      "width": 390,
+      "actual": 390,
+      "height": 1547
+    },
+    {
+      "label": "Resumen 390",
+      "width": 390,
+      "actual": 390,
+      "height": 1696
+    },
+    {
+      "label": "Procedimiento 390",
+      "width": 390,
+      "actual": 390,
+      "height": 3513
+    },
+    {
+      "label": "Ventas 390",
+      "width": 390,
+      "actual": 390,
+      "height": 3708
+    },
+    {
+      "label": "Precios 390",
+      "width": 390,
+      "actual": 390,
+      "height": 3600
+    },
+    {
+      "label": "Costos 390",
+      "width": 390,
+      "actual": 390,
+      "height": 3513
+    },
+    {
+      "label": "Comparar 320",
+      "width": 320,
+      "actual": 320,
+      "height": 1588
+    },
+    {
+      "label": "Tabla 320",
+      "width": 320,
+      "actual": 320,
+      "height": 1540
+    },
+    {
+      "label": "Desglose 320",
+      "width": 320,
+      "actual": 320,
+      "height": 1633
+    },
+    {
+      "label": "Resumen 320",
+      "width": 320,
+      "actual": 320,
+      "height": 1819
+    },
+    {
+      "label": "Procedimiento 320",
+      "width": 320,
+      "actual": 320,
+      "height": 4154
+    },
+    {
+      "label": "Ventas 320",
+      "width": 320,
+      "actual": 320,
+      "height": 4381
+    },
+    {
+      "label": "Precios 320",
+      "width": 320,
+      "actual": 320,
+      "height": 4261
+    },
+    {
+      "label": "Costos 320",
+      "width": 320,
+      "actual": 320,
+      "height": 4154
+    },
+    {
+      "label": "Cambiar mantenimiento marca pendiente y recalcula 500 → 200"
+    },
+    {
+      "label": "Error oculto abre Precios y enfoca el campo inválido"
+    },
+    {
+      "label": "Los campos de IA por revisar conservan borde ámbar",
+      "border": "rgb(194, 139, 36)"
+    },
+    {
+      "label": "Foto demo y voz revisada conservan confirmación humana"
+    },
+    {
+      "label": "Asistente escritorio",
+      "width": 1366,
+      "actual": 1366,
+      "height": 963
+    },
+    {
+      "label": "Asistente 320",
+      "width": 320,
+      "actual": 320,
+      "height": 1829
+    },
+    {
+      "label": "Movimiento reducido desactiva transiciones"
+    }
+  ],
+  "errors": []
+}

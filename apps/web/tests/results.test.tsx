@@ -3,34 +3,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../src/App';
-import { REFERENCE_CASES, resolveMockAnalysis } from '../src/mocks/reference-cases';
+import { REFERENCE_CASES, resolveMockAnalysis } from './fixtures/reference-cases';
 import { apiClient } from '../src/services/api-client';
 import { RecommendationHeroCard } from '../src/features/results/RecommendationHeroCard';
 import { AlternativesComparisonSection, CostBreakdownTooltip } from '../src/features/results/AlternativesComparisonSection';
 import { ProcedureAccordion } from '../src/features/results/ProcedureAccordion';
 import { SensitivityAndComparisonBar } from '../src/features/results/SensitivityAndComparisonBar';
 
-afterEach(() => { cleanup(); vi.restoreAllMocks(); apiClient.setUseMocks(true); });
+beforeEach(() => { vi.spyOn(apiClient, 'checkHealth').mockResolvedValue({ status: 'ok', ai_available: false }); });
+
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('Contenido de resultados', () => {
   it('distingue inversión por pedido y costo total anual con los valores exactos de ILY', () => {
-    render(<RecommendationHeroCard recommended={REFERENCE_CASES.ily.response.recommended} currency="USD" productName="Caso ILY" mode="mock" />);
-    expect(screen.getByText('Desembolso / Inversión por cada pedido')).toBeDefined();
-    expect(screen.getByText('Costo Total Anual (Compra + Pedidos + Mantenimiento)')).toBeDefined();
+    render(<RecommendationHeroCard recommended={REFERENCE_CASES.ily.response.recommended} currency="USD" productName="Caso ILY" />);
+    expect(screen.getByText('Inversión por pedido')).toBeDefined();
+    expect(screen.getByText('Costo anual total')).toBeDefined();
     expect(screen.getByText(/USD\s+15,000\.00/)).toBeDefined();
     expect(screen.getByText(/USD\s+150,840\.00/)).toBeDefined();
-    expect(screen.getByText('Se realizan 10.0 pedidos al año (cada 37 días)')).toBeDefined();
-    expect(screen.getByText('Datos simulados de referencia')).toBeDefined();
+    expect(screen.getByText(/Precio por unidad:/)).toBeDefined();
+    expect(screen.getByText('Calculado por el motor real')).toBeDefined();
   });
 
-  it('incluye todos los tramos, resalta el mejor y agrega la compra actual al gráfico', () => {
+  it('alterna gráfico y tabla, resalta el mejor y evita duplicar una compra actual ya evaluada', async () => {
     const { container } = render(<AlternativesComparisonSection response={REFERENCE_CASES.wohl.response} currency="USD" />);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(container.querySelectorAll('.recharts-bar-rectangle')).toHaveLength(3);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Tabla' }));
     const table = screen.getByRole('table');
     expect(within(table).getAllByRole('row')).toHaveLength(4);
-    expect(within(table).getByText('Mejor opción').closest('tr')?.classList.contains('bg-emerald-50/70')).toBe(true);
+    expect(within(table).getByText('Mejor opción').closest('tr')?.classList.contains('desk-recommended-row')).toBe(true);
     expect(within(table).getByText(/USD\s+24,725\.00/)).toBeDefined();
-    expect(container.querySelectorAll('.recharts-bar-rectangle')).toHaveLength(4);
-    expect(screen.getByText('Tu compra actual')).toBeDefined();
+    expect(screen.queryByRole('figure')).toBeNull();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Ver desglose del tramo 2' }));
+    expect(screen.getByText('Inversión por pedido')).toBeDefined();
+    expect(screen.getByText(/USD\s+4,800\.00/)).toBeDefined();
   });
 
   it('el tooltip usa el desglose proporcionado sin recalcular los centavos', () => {
@@ -56,7 +63,7 @@ describe('Contenido de resultados', () => {
 
   it('ofrece una guía cuando no se indicó la compra actual y transmite cambios del 10%', async () => {
     const callback = vi.fn();
-    render(<SensitivityAndComparisonBar response={{ ...REFERENCE_CASES.ily.response, current_comparison: null }} request={REFERENCE_CASES.ily.request} currency="USD" onQuickRecalculate={callback} isLoading={false} useMocks={false} />);
+    render(<SensitivityAndComparisonBar response={{ ...REFERENCE_CASES.ily.response, current_comparison: null }} request={REFERENCE_CASES.ily.request} currency="USD" onQuickRecalculate={callback} isLoading={false} />);
     expect(screen.getByText(/Ingresa cuántas unidades sueles pedir en el formulario/)).toBeDefined();
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Aumentar demanda un 10%' }));
@@ -68,13 +75,13 @@ describe('Contenido de resultados', () => {
 
 describe('Integración de cálculo y protección contra resultados antiguos', () => {
   beforeEach(() => {
-    apiClient.setUseMocks(true);
+
     vi.spyOn(apiClient, 'runAnalysis').mockImplementation(async (request) => resolveMockAnalysis(request));
   });
 
   async function openApp() {
     render(<App />);
-    await screen.findByText('RECOMENDACIÓN ÓPTIMA VERIFICADA');
+    await screen.findByText('Compra recomendada');
     return userEvent.setup();
   }
 
@@ -101,36 +108,37 @@ describe('Integración de cálculo y protección contra resultados antiguos', ()
 
   it('el mantenimiento de 5 a 10 cambia A a B y preserva las ediciones aún no calculadas', async () => {
     const user = await openApp();
-    await user.click(screen.getByRole('button', { name: 'Sensibilidad A (Mant. = 5)' }));
+    await user.selectOptions(screen.getByLabelText('Caso de análisis'), 'sensibilidad_a');
     const current = screen.getByLabelText(/¿Cuántas unidades sueles pedir actualmente/);
     await user.clear(current);
     await user.type(current, '500');
+    await user.click(screen.getByText('Probar otro mantenimiento'));
     await user.click(screen.getByRole('button', { name: 'Probar Mantenimiento = 10' }));
     await waitFor(() => expect(apiClient.runAnalysis).toHaveBeenLastCalledWith({ ...REFERENCE_CASES.sensibilidad_a.request, holding_cost_value: 10, current_order_quantity: 500 }));
     await waitFor(() => expect(screen.queryByText(/Los datos del ejercicio cambiaron/)).toBeNull());
-    expect((screen.getByLabelText('¿Cuánto cuesta guardar 1 unidad en inventario?') as HTMLInputElement).value).toBe('10');
-    expect(screen.getByText('Pedido óptimo recomendado (200 u.)')).toBeDefined();
+    expect((screen.getByLabelText(/^Mantenimiento por unidad/) as HTMLInputElement).value).toBe('10');
+    expect(within(screen.getByRole('region', { name: 'Compra recomendada' })).getByText('200')).toBeDefined();
     expect(screen.getByText(/S\/\s?252\.00/)).toBeDefined();
   });
 
   it('un cambio no precalculado conserva el resultado anterior, marcado como desactualizado', async () => {
     const user = await openApp();
+    await user.click(screen.getByRole('tab', { name: 'Ventas' }));
     await user.click(screen.getByRole('button', { name: 'Aumentar demanda un 10%' }));
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', expect.stringContaining('API real'));
     expect(screen.getByTestId('results-panel').classList.contains('opacity-60')).toBe(true);
     expect((screen.getByLabelText('¿Cuántas unidades vendes o necesitas?') as HTMLInputElement).value).toBe('11000');
   });
 
-  it('cambia de modo en apiClient y mantiene visible la procedencia de un resultado anterior si falla la API', async () => {
+  it('conserva el resultado anterior como desactualizado cuando falla el servidor', async () => {
     const user = await openApp();
     vi.mocked(apiClient.runAnalysis).mockRejectedValueOnce(new Error('No pudimos conectar con el servidor.'));
-    await user.selectOptions(screen.getByLabelText('Modo de datos'), 'real');
-    expect(apiClient.useMocks).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'Calcular mejor compra' }));
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'No pudimos conectar con el servidor.');
-    expect(screen.getByText('Datos simulados de referencia')).toBeDefined();
+    expect(screen.getByText('Calculado por el motor real')).toBeDefined();
     expect(screen.getByTestId('results-panel').classList.contains('opacity-60')).toBe(true);
-    await user.selectOptions(screen.getByLabelText('Modo de datos'), 'mock');
+    expect(screen.queryByLabelText('Modo de datos')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Calcular mejor compra' }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
-    expect(apiClient.useMocks).toBe(true);
   });
 });

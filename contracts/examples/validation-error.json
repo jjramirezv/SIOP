@@ -1,0 +1,12 @@
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Revisa los datos enviados.",
+    "details": [
+      {
+        "field": "demand.value",
+        "message": "Debe ser mayor que cero."
+      }
+    ]
+  }
+}

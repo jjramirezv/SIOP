@@ -1,115 +1,96 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { REFERENCE_CASES, mockAssistantMessage } from '../src/mocks/reference-cases';
+import { readFileSync } from 'node:fs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { REFERENCE_CASES } from './fixtures/reference-cases';
 import { ApiClientError, apiClient } from '../src/services/api-client';
+import { toApiDraft } from '../src/services/api-adapters';
 
-const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
-  status, headers: { 'Content-Type': 'application/json' },
-});
+const read = (path: string) => JSON.parse(readFileSync(new URL(`../../../${path}`, import.meta.url), 'utf8'));
+const wireAnalysis = (name = 'ily') => ({ ...read(`fixtures/expected-results/${name}.json`), data_source: 'calculated' });
+const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-beforeEach(() => { apiClient.setUseMocks(true); });
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); apiClient.setUseMocks(true); });
-
-describe('Modo simulado', () => {
-  it('inicia desde el entorno y expone el estado en memoria', () => {
-    expect(apiClient.useMocks).toBe(true);
-    apiClient.useMocks = false;
-    expect(apiClient.getUseMocks()).toBe(false);
-  });
-
-  it('espera 350 ms sin llamar al servidor y anuncia que la IA real no está disponible', async () => {
-    vi.useFakeTimers();
-    const fetchMock = vi.fn();
+describe('Cliente HTTP real y contrato compartido', () => {
+  it.each(['ily', 'wohl', 'sensitivity-a', 'sensitivity-b'])('traduce %s sin calcular números financieros en el navegador', async (name) => {
+    const wire = wireAnalysis(name);
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(wire));
     vi.stubGlobal('fetch', fetchMock);
-    expect(await apiClient.checkHealth()).toEqual({ status: 'ok', ai_available: false, mode: 'mock' });
-    const callback = vi.fn();
-    const pending = apiClient.runAnalysis(REFERENCE_CASES.ily.request).then(callback);
-    await vi.advanceTimersByTimeAsync(349);
-    expect(callback).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
-    await pending;
-    expect(callback).toHaveBeenCalledWith(REFERENCE_CASES.ily.response);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const flat = name === 'ily' ? REFERENCE_CASES.ily.request : name === 'wohl' ? REFERENCE_CASES.wohl.request : name === 'sensitivity-a' ? REFERENCE_CASES.sensibilidad_a.request : REFERENCE_CASES.sensibilidad_b.request;
+    const actual = await apiClient.runAnalysis(flat);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/v1/analyses');
+    expect(JSON.parse(init.body)).toEqual(toApiDraft(flat));
+    expect(actual.recommended.feasible_quantity).toBe(wire.recommended.quantity);
+    expect(actual.recommended.total_annual_cost).toBe(wire.recommended.annual_costs.total);
+    expect(actual.alternatives.every((entry) => entry.status_label !== 'Descartado')).toBe(true);
+    expect(actual.excluded_candidates).toHaveLength(wire.candidates.filter((entry: { status: string }) => entry.status === 'excluded').length);
+    expect(actual.current_comparison?.annual_savings).toBe(wire.comparison.annual_savings);
   });
 
-  it('rechaza escenarios no precalculados con ApiClientError', async () => {
-    await expect(apiClient.runAnalysis({ ...REFERENCE_CASES.ily.request, demand: 123 })).rejects.toMatchObject({ code: 'mock', name: 'ApiClientError' });
-  });
-
-  it('expone transcripción editable y borradores de texto e imagen', async () => {
-    const [text, image, transcription] = await Promise.all([
-      apiClient.sendAssistantMessage({ message: 'Ayúdame' }),
-      apiClient.extractFromImage(new File(['imagen'], 'ejercicio.png')),
-      apiClient.transcribeAudio(new Blob(['audio'])),
-    ]);
-    expect(text.proposed_data).not.toBeNull();
-    expect(image.fields_to_review).toEqual(['holding_cost_value', 'discount_tiers']);
-    expect(transcription).toEqual({ text: expect.stringContaining('200 unidades al mes'), duration_seconds: 12 });
-  });
-});
-
-describe('Modo real', () => {
-  beforeEach(() => { apiClient.setUseMocks(false); });
-
-  it('consulta health y envía análisis y mensajes como JSON', async () => {
-    const assistant = mockAssistantMessage({ message: 'Ayúdame' });
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ status: 'ok', ai_available: true }))
-      .mockResolvedValueOnce(jsonResponse(REFERENCE_CASES.wohl.response))
-      .mockResolvedValueOnce(jsonResponse(assistant));
+  it('la explicación envía la entrada verificada y el historial, sin enviar resultados calculados por el cliente', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(wireAnalysis())).mockResolvedValueOnce(jsonResponse(read('contracts/examples/assistant-response.json')));
     vi.stubGlobal('fetch', fetchMock);
-    expect(await apiClient.checkHealth()).toEqual({ status: 'ok', ai_available: true, mode: 'real' });
-    expect(await apiClient.runAnalysis(REFERENCE_CASES.wohl.request)).toEqual(REFERENCE_CASES.wohl.response);
-    expect(await apiClient.sendAssistantMessage({ message: 'Ayúdame' })).toEqual(assistant);
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      'http://localhost:8000/api/v1/health', 'http://localhost:8000/api/v1/analyses',
-      'http://localhost:8000/api/v1/assistant/messages',
-    ]);
-    const init = fetchMock.mock.calls[1][1] as RequestInit;
-    expect(init.method).toBe('POST');
-    expect(new Headers(init.headers).get('Content-Type')).toBe('application/json');
-    expect(JSON.parse(init.body as string)).toEqual(REFERENCE_CASES.wohl.request);
+    const result = await apiClient.runAnalysis(REFERENCE_CASES.ily.request);
+    await apiClient.sendAssistantMessage({ message: 'Explícame el resultado', current_draft: REFERENCE_CASES.ily.request, current_result: result, history: [{ role: 'user', content: 'Hola' }] });
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.analysis_input).toEqual(wireAnalysis().input);
+    expect(body.history).toEqual([{ role: 'user', content: 'Hola' }]);
+    expect(body).not.toHaveProperty('current_result');
+    expect(body.draft.order_cost).toBe(9);
   });
 
-  it('envía imagen con contexto y audio con nombre en FormData', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse(mockAssistantMessage({ message: 'Ayúdame' })))
-      .mockResolvedValueOnce(jsonResponse({ text: 'Texto transcrito', duration_seconds: 3 }));
+  it('respeta borradores parciales, campos faltantes y revisión obligatoria', async () => {
+    const wire = read('contracts/examples/assistant-response.json');
+    wire.proposed_input.discount_tiers = [{ min_quantity: 0, unit_price: null }];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(wire)));
+    const response = await apiClient.sendAssistantMessage({ message: 'Vendo cuadernos' });
+    expect(response.proposed_data?.demand).toBe(200);
+    expect(response.proposed_data?.demand_period).toBe('month');
+    expect(response.proposed_data).not.toHaveProperty('ordering_cost');
+    expect(response.proposed_data?.discount_tiers?.[0].unit_price).toBeNaN();
+    expect(response.missing_fields).toContain('ordering_cost');
+    expect(response.missing_fields).toContain('holding_cost_period');
+    wire.requires_confirmation = false;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(wire)));
+    await expect(apiClient.sendAssistantMessage({ message: 'Hola' })).rejects.toMatchObject({ code: 'invalid_response' });
+  });
+
+  it('envía imagen, contexto, borrador y audio como multipart, dejando el boundary al navegador', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(read('contracts/examples/assistant-response.json'))).mockResolvedValueOnce(jsonResponse({ text: 'Texto transcrito', language: 'es' }));
     vi.stubGlobal('fetch', fetchMock);
-    await apiClient.extractFromImage(new File(['imagen'], 'foto.png', { type: 'image/png' }), 'Caso ILY');
-    expect(await apiClient.transcribeAudio(new Blob(['voz'], { type: 'audio/webm' }), 'voz.webm')).toEqual({ text: 'Texto transcrito', duration_seconds: 3 });
-    const [imageUrl, imageInit] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const [audioUrl, audioInit] = fetchMock.mock.calls[1] as [string, RequestInit];
-    expect(imageUrl).toBe('http://localhost:8000/api/v1/assistant/extract-image');
-    expect(audioUrl).toBe('http://localhost:8000/api/v1/assistant/transcribe');
-    expect(imageInit.method).toBe('POST');
-    expect((imageInit.body as FormData).get('context')).toBe('Caso ILY');
-    expect(((imageInit.body as FormData).get('file') as File).name).toBe('foto.png');
-    expect(((audioInit.body as FormData).get('file') as File).name).toBe('voz.webm');
+    await apiClient.extractFromImage(new File(['png'], 'foto.png', { type: 'image/png' }), 'Cotización', REFERENCE_CASES.ily.request);
+    expect(await apiClient.transcribeAudio(new Blob(['audio'], { type: 'audio/webm' }), 'voz.webm')).toMatchObject({ text: 'Texto transcrito' });
+    const imageInit = fetchMock.mock.calls[0][1];
+    const audioInit = fetchMock.mock.calls[1][1];
+    expect(imageInit.body.get('context')).toBe('Cotización');
+    expect(JSON.parse(imageInit.body.get('draft'))).toEqual(toApiDraft(REFERENCE_CASES.ily.request));
+    expect(imageInit.body.get('file').name).toBe('foto.png');
+    expect(audioInit.body.get('file').name).toBe('voz.webm');
     expect(new Headers(imageInit.headers).has('Content-Type')).toBe(false);
     expect(new Headers(audioInit.headers).has('Content-Type')).toBe(false);
   });
 
-  it.each([400, 422, 413, 415, 429, 500, 503])('devuelve error tipado ante HTTP %s sin cambiar a mocks', async (status) => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ detail: 'Error interno' }, status)));
-    await expect(apiClient.runAnalysis(REFERENCE_CASES.ily.request)).rejects.toMatchObject({ name: 'ApiClientError', code: 'http', status });
-    expect(apiClient.useMocks).toBe(false);
+  it('consulta la salud y comunica honestamente la ausencia de configuración de IA', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ status: 'ok', service: 'SIOP API', contract_version: '1.0.0', ai_available: false }));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await apiClient.checkHealth()).toEqual({ status: 'ok', ai_available: false });
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/health');
+  });
+
+  it.each([400, 422, 413, 415, 429, 500, 503])('conserva errores tipados HTTP %s, sin respuestas de sustitución', async (status) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ error: { code: 'ERROR', message: 'El asistente necesita configuración en el servidor.', details: [] } }, status)));
+    await expect(apiClient.runAnalysis(REFERENCE_CASES.ily.request)).rejects.toMatchObject({ name: 'ApiClientError', code: 'http', status, message: 'El asistente necesita configuración en el servidor.' });
   });
 
   it('controla fallos de red, JSON inválido y contratos incompletos', async () => {
-    const fetchMock = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch'))
-      .mockResolvedValueOnce(new Response('no es JSON'))
-      .mockResolvedValueOnce(jsonResponse({ recommended: {} }));
-    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(new Response('no es JSON')).mockResolvedValueOnce(jsonResponse({ recommended: {} })));
     await expect(apiClient.checkHealth()).rejects.toBeInstanceOf(ApiClientError);
     await expect(apiClient.checkHealth()).rejects.toMatchObject({ code: 'invalid_response' });
     await expect(apiClient.runAnalysis(REFERENCE_CASES.ily.request)).rejects.toMatchObject({ code: 'invalid_response' });
   });
 
-  it('interrumpe solicitudes que exceden 30 segundos', async () => {
+  it('interrumpe solicitudes que exceden su plazo', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
-      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
-    })));
+    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => { init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError'))); })));
     const pending = expect(apiClient.checkHealth()).rejects.toMatchObject({ code: 'timeout' });
     await vi.advanceTimersByTimeAsync(30000);
     await pending;

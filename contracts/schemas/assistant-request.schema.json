@@ -1,0 +1,456 @@
+{
+  "$defs": {
+    "AnalysisRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "product_name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Product Name",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "demand": {
+          "$ref": "#/$defs/Demand"
+        },
+        "order_cost": {
+          "exclusiveMinimum": 0,
+          "title": "Order Cost",
+          "type": "number"
+        },
+        "holding_cost": {
+          "$ref": "#/$defs/HoldingCost"
+        },
+        "days_per_year": {
+          "maximum": 366,
+          "minimum": 1,
+          "title": "Days Per Year",
+          "type": "integer"
+        },
+        "discount_tiers": {
+          "items": {
+            "$ref": "#/$defs/DiscountTier"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Discount Tiers",
+          "type": "array"
+        },
+        "current_order_quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Order Quantity"
+        }
+      },
+      "required": [
+        "product_name",
+        "currency",
+        "demand",
+        "order_cost",
+        "holding_cost",
+        "days_per_year",
+        "discount_tiers"
+      ],
+      "title": "AnalysisRequest",
+      "type": "object"
+    },
+    "ChatMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "content"
+      ],
+      "title": "ChatMessage",
+      "type": "object"
+    },
+    "Demand": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "period"
+      ],
+      "title": "Demand",
+      "type": "object"
+    },
+    "DiscountTier": {
+      "additionalProperties": false,
+      "properties": {
+        "min_quantity": {
+          "minimum": 0,
+          "title": "Min Quantity",
+          "type": "integer"
+        },
+        "unit_price": {
+          "exclusiveMinimum": 0,
+          "title": "Unit Price",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min_quantity",
+        "unit_price"
+      ],
+      "title": "DiscountTier",
+      "type": "object"
+    },
+    "DraftDemand": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "month",
+                "year"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        }
+      },
+      "title": "DraftDemand",
+      "type": "object"
+    },
+    "DraftHoldingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "fixed",
+                "percentage"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "period": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "month",
+                "year"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Period"
+        }
+      },
+      "title": "DraftHoldingCost",
+      "type": "object"
+    },
+    "DraftTier": {
+      "additionalProperties": false,
+      "properties": {
+        "min_quantity": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Quantity"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Price"
+        }
+      },
+      "title": "DraftTier",
+      "type": "object"
+    },
+    "HoldingCost": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "fixed",
+            "percentage"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "period": {
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Period",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "value",
+        "period"
+      ],
+      "title": "HoldingCost",
+      "type": "object"
+    },
+    "InventoryDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "product_name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product Name"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Z]{3}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "demand": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DraftDemand"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "order_cost": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Order Cost"
+        },
+        "holding_cost": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DraftHoldingCost"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "days_per_year": {
+          "anyOf": [
+            {
+              "maximum": 366,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Days Per Year"
+        },
+        "discount_tiers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DraftTier"
+              },
+              "maxItems": 20,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Discount Tiers"
+        },
+        "current_order_quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Order Quantity"
+        }
+      },
+      "title": "InventoryDraft",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "message": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InventoryDraft"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "analysis_input": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnalysisRequest"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "history": {
+      "items": {
+        "$ref": "#/$defs/ChatMessage"
+      },
+      "maxItems": 10,
+      "title": "History",
+      "type": "array"
+    }
+  },
+  "required": [
+    "message"
+  ],
+  "title": "AssistantRequest",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

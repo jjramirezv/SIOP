@@ -10,13 +10,12 @@ interface SensitivityAndComparisonBarProps {
   currency: string;
   onQuickRecalculate: (updatedRequest: AnalysisRequest) => void;
   isLoading: boolean;
-  useMocks: boolean;
 }
 
 const buttonClass = 'rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 cursor-pointer';
 const periods = { year: 'al año', month: 'al mes', day: 'al día' };
 
-export function SensitivityAndComparisonBar({ response, request, currency, onQuickRecalculate, isLoading, useMocks }: SensitivityAndComparisonBarProps) {
+export function SensitivityAndComparisonBar({ response, request, currency, onQuickRecalculate, isLoading }: SensitivityAndComparisonBarProps) {
   const [demand, setDemand] = useState(String(request.demand));
   const [holding, setHolding] = useState(String(request.holding_cost_value));
   useEffect(() => { setDemand(String(request.demand)); }, [request.demand]);
@@ -52,7 +51,7 @@ export function SensitivityAndComparisonBar({ response, request, currency, onQui
       <div className="border-t border-slate-200 pt-5">
         <h2 className="text-base font-semibold">¿Qué pasa si cambia la demanda o el mantenimiento?</h2>
         <p className="mt-2 text-xs leading-5 text-slate-500">Los controles usan los datos actuales del formulario. Cada cambio aplicado solicita un nuevo análisis.</p>
-        {useMocks && <p className="mt-2 text-xs leading-5 text-amber-900">En modo simulado, carga Sensibilidad A o B para probar mantenimiento de 5 a 10. Otros cambios requieren la API real.</p>}
+
         <fieldset disabled={isLoading} className="mt-4 grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="quick-demand" className="block text-xs font-medium">Demanda (unidades {periods[request.demand_period]})</label>

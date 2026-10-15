@@ -1,7 +1,5 @@
 import { z } from 'zod';
-import {
-  mockAssistantMessage, mockExtractImage, mockTranscribeAudio, resolveMockAnalysis,
-} from '../mocks/reference-cases';
+import { analysisWireSchema, assistantWireSchema, fromApiAnalysis, fromApiAssistant, toApiDraft, toApiAssistant } from './api-adapters';
 import type {
   AnalysisRequest, AnalysisResponse, AssistantMessageRequest, AssistantResponse,
   TranscriptionResponse,
@@ -9,7 +7,7 @@ import type {
 
 export class ApiClientError extends Error {
   readonly status?: number;
-  readonly code: 'network' | 'http' | 'timeout' | 'invalid_response' | 'mock';
+  readonly code: 'network' | 'http' | 'timeout' | 'invalid_response';
   readonly details?: unknown;
 
   constructor(
@@ -25,52 +23,11 @@ export class ApiClientError extends Error {
   }
 }
 
-const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1').replace(/\/+$/, '');
-let useMocks: boolean = import.meta.env.VITE_USE_MOCKS !== 'false';
+const baseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
 
-export function setUseMocks(value: boolean): void { useMocks = value; }
-export function getUseMocks(): boolean { return useMocks; }
-
-const candidateSchema = z.object({
-  tier_index: z.number(), min_quantity: z.number(), max_quantity: z.number().nullable(),
-  unit_price: z.number(), eoq_raw: z.number(), feasible_quantity: z.number(),
-  status_label: z.enum(['EOQ factible en rango', 'Ajustado al mínimo del tramo', 'Descartado']),
-  annual_purchase_cost: z.number(), annual_ordering_cost: z.number(), annual_holding_cost: z.number(),
-  total_annual_cost: z.number(), order_investment: z.number(), orders_per_year: z.number(),
-  cycle_time_days: z.number(), is_recommended: z.boolean(),
-});
-const requestSchema = z.object({
-  product_name: z.string(), currency: z.string(), demand: z.number(),
-  demand_period: z.enum(['day', 'month', 'year']), days_per_year: z.number(),
-  ordering_cost: z.number(), holding_cost_mode: z.enum(['fixed', 'percentage']),
-  holding_cost_value: z.number(), holding_cost_period: z.enum(['day', 'month', 'year']),
-  discount_tiers: z.array(z.object({ min_quantity: z.number(), unit_price: z.number() })),
-  current_order_quantity: z.number().nullish(),
-});
-const analysisSchema: z.ZodType<AnalysisResponse> = z.object({
-  recommended: candidateSchema, alternatives: z.array(candidateSchema),
-  current_comparison: z.object({
-    current_quantity: z.number(), unit_price: z.number(), annual_purchase_cost: z.number(),
-    annual_ordering_cost: z.number(), annual_holding_cost: z.number(), total_annual_cost: z.number(),
-    annual_savings: z.number(), savings_percentage: z.number(),
-  }).nullable(),
-  procedure: z.object({
-    annualized_demand: z.number(), annual_ordering_cost_param: z.number(), holding_cost_summary: z.string(),
-    formulas_used: z.array(z.string()), step_by_step: z.array(z.string()), assumptions: z.array(z.string()),
-  }),
-});
-const assistantSchema: z.ZodType<AssistantResponse> = z.object({
-  reply_message: z.string(), proposed_data: requestSchema.partial().nullable(),
-  missing_fields: z.array(z.string()), fields_to_review: z.array(z.string()),
-  suggested_action: z.enum(['propose_data', 'clarify', 'evaluate', 'explain']),
-});
-const transcriptionSchema: z.ZodType<TranscriptionResponse> = z.object({
-  text: z.string(), duration_seconds: z.number().optional(),
-});
-
-async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}, timeoutMs = 30000): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const headers = new Headers(init.headers);
     headers.set('Accept', 'application/json');
@@ -87,7 +44,8 @@ async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit 
             : result.status === 429
               ? 'Hay muchas solicitudes en este momento. Espera unos segundos y vuelve a intentar.'
               : 'No pudimos completar la solicitud con el servidor. Vuelve a intentarlo en unos momentos.';
-      throw new ApiClientError(message, 'http', { status: result.status, details });
+      const serverError = z.object({ error: z.object({ message: z.string() }) }).safeParse(details);
+      throw new ApiClientError(serverError.success ? serverError.data.error.message : message, 'http', { status: result.status, details });
     }
     const body: unknown = await result.json().catch((cause: unknown) => {
       throw new ApiClientError('El servidor envió una respuesta que no se pudo leer. Vuelve a intentarlo.', 'invalid_response', { cause });
@@ -108,60 +66,36 @@ async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit 
   }
 }
 
-async function simulated<T>(resolve: () => T): Promise<T> {
-  await new Promise<void>((done) => setTimeout(done, 350));
-  try { return resolve(); } catch (cause) {
-    throw new ApiClientError(
-      cause instanceof Error ? cause.message : 'No se pudo preparar la respuesta simulada. Carga un caso de referencia.',
-      'mock', { cause },
-    );
-  }
-}
-
-function postJson<T>(path: string, payload: unknown, schema: z.ZodType<T>): Promise<T> {
+function postJson<T>(path: string, payload: unknown, schema: z.ZodType<T>, timeoutMs = 130000): Promise<T> {
   return request(path, schema, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-  });
+  }, timeoutMs);
 }
 
-export async function checkHealth(): Promise<{ status: string; ai_available: boolean; mode: 'mock' | 'real' }> {
-  if (useMocks) return { status: 'ok', ai_available: false, mode: 'mock' };
-  const health = await request('/health', z.object({ status: z.string(), ai_available: z.boolean() }));
-  return { ...health, mode: 'real' };
+export function checkHealth(): Promise<{ status: string; ai_available: boolean }> {
+  return request('/health', z.object({ status: z.literal('ok'), ai_available: z.boolean() }));
 }
 
-export function runAnalysis(payload: AnalysisRequest): Promise<AnalysisResponse> {
-  return useMocks
-    ? simulated(() => resolveMockAnalysis(payload))
-    : postJson('/analyses', payload, analysisSchema);
+export async function runAnalysis(payload: AnalysisRequest): Promise<AnalysisResponse> {
+  return fromApiAnalysis(await postJson('/analyses', toApiDraft(payload), analysisWireSchema, 30000));
 }
 
-export function sendAssistantMessage(payload: AssistantMessageRequest): Promise<AssistantResponse> {
-  return useMocks
-    ? simulated(() => mockAssistantMessage(payload))
-    : postJson('/assistant/messages', payload, assistantSchema);
+export async function sendAssistantMessage(payload: AssistantMessageRequest): Promise<AssistantResponse> {
+  return fromApiAssistant(await postJson('/assistant/messages', toApiAssistant(payload), assistantWireSchema));
 }
 
-export function extractFromImage(file: File, context?: string): Promise<AssistantResponse> {
-  if (useMocks) return simulated(() => mockExtractImage(file, context));
+export async function extractFromImage(file: File, context?: string, draft?: Partial<AnalysisRequest>): Promise<AssistantResponse> {
   const body = new FormData();
   body.append('file', file);
-  if (context !== undefined) body.append('context', context);
-  return request('/assistant/extract-image', assistantSchema, { method: 'POST', body });
+  if (context) body.append('context', context);
+  if (draft) body.append('draft', JSON.stringify(toApiDraft(draft)));
+  return fromApiAssistant(await request('/assistant/extract-image', assistantWireSchema, { method: 'POST', body }, 130000));
 }
 
 export function transcribeAudio(audioBlob: Blob, filename = 'grabacion.webm'): Promise<TranscriptionResponse> {
-  if (useMocks) return simulated(() => {
-    const { text, duration_seconds } = mockTranscribeAudio(audioBlob, filename);
-    return { text, duration_seconds };
-  });
   const body = new FormData();
   body.append('file', audioBlob, filename);
-  return request('/assistant/transcribe', transcriptionSchema, { method: 'POST', body });
+  return request('/assistant/transcribe', z.object({ text: z.string().trim().min(1), language: z.string().nullish() }), { method: 'POST', body }, 130000);
 }
 
-export const apiClient = {
-  get useMocks(): boolean { return useMocks; },
-  set useMocks(value: boolean) { setUseMocks(value); },
-  setUseMocks, getUseMocks, checkHealth, runAnalysis, sendAssistantMessage, extractFromImage, transcribeAudio,
-};
+export const apiClient = { checkHealth, runAnalysis, sendAssistantMessage, extractFromImage, transcribeAudio };

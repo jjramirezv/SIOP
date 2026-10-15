@@ -1,0 +1,30 @@
+{
+  "product_name": "Caso ILY - Insumos Industriales",
+  "currency": "USD",
+  "demand": {
+    "value": 10000,
+    "period": "year"
+  },
+  "order_cost": 9,
+  "holding_cost": {
+    "mode": "percentage",
+    "value": 10,
+    "period": "year"
+  },
+  "days_per_year": 365,
+  "current_order_quantity": 316,
+  "discount_tiers": [
+    {
+      "min_quantity": 0,
+      "unit_price": 20
+    },
+    {
+      "min_quantity": 250,
+      "unit_price": 18
+    },
+    {
+      "min_quantity": 1000,
+      "unit_price": 15
+    }
+  ]
+}

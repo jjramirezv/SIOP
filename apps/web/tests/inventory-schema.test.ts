@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analysisFormSchema } from '../src/features/inventory-form/schema';
-import { REFERENCE_CASES } from '../src/mocks/reference-cases';
+import { REFERENCE_CASES } from './fixtures/reference-cases';
 
 describe('Validación de ingreso de datos RF-01 y RF-02', () => {
   it.each(Object.values(REFERENCE_CASES))('acepta todos los datos de $title', ({ request }) => {
@@ -26,9 +26,9 @@ describe('Validación de ingreso de datos RF-01 y RF-02', () => {
     ]));
   });
 
-  it('exige dos tramos pero permite precios iguales', () => {
+  it('admite un tramo y precios iguales, como el contrato del servidor', () => {
     const request = REFERENCE_CASES.ily.request;
-    expect(analysisFormSchema.safeParse({ ...request, discount_tiers: [{ min_quantity: 0, unit_price: 20 }] }).success).toBe(false);
+    expect(analysisFormSchema.safeParse({ ...request, discount_tiers: [{ min_quantity: 0, unit_price: 20 }] }).success).toBe(true);
     expect(analysisFormSchema.safeParse({ ...request, discount_tiers: [{ min_quantity: 0, unit_price: 20 }, { min_quantity: 200, unit_price: 20 }] }).success).toBe(true);
   });
 
