@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { AlertTriangle, Loader2, Mic, Send, Square, Upload } from 'lucide-react';
-import { apiClient } from '../../services/api-client';
+import { ApiClientError, apiClient } from '../../services/api-client';
+import { AssistantRequestStatus } from './AssistantRequestStatus';
 import { inputClass } from '../inventory-form/form-ui';
 
 export type VoiceRecorderState = 'idle' | 'requesting_permission' | 'recording' | 'transcribing' | 'reviewing' | 'error';
@@ -34,6 +35,8 @@ export function VoiceRecorderControl({ onSendReviewedText, disabled = false, isA
   const [seconds, setSeconds] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState('');
+  const [delayedError, setDelayedError] = useState(false);
+  const transcriptionController = useRef<AbortController | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -72,6 +75,7 @@ export function VoiceRecorderControl({ onSendReviewedText, disabled = false, isA
 
   function cancel() {
     operationRef.current += 1;
+    transcriptionController.current?.abort();
     disposeRecorder();
     lastAudioRef.current = null;
     setTranscript(''); setError(''); setSeconds(0);
@@ -83,6 +87,7 @@ export function VoiceRecorderControl({ onSendReviewedText, disabled = false, isA
     return () => {
       alive.current = false;
       operationRef.current += 1;
+      transcriptionController.current?.abort();
       disposeRecorder();
       lastAudioRef.current = null;
     };
@@ -92,8 +97,9 @@ export function VoiceRecorderControl({ onSendReviewedText, disabled = false, isA
     if ((!isActive || disabled) && ['requesting_permission', 'recording', 'transcribing'].includes(stateRef.current)) cancel();
   }, [isActive, disabled]);
 
-  function fail(message: string) {
+  function fail(message: string, delayed = false) {
     setError(message);
+    setDelayedError(delayed);
     changeState('error');
   }
 
@@ -104,15 +110,18 @@ export function VoiceRecorderControl({ onSendReviewedText, disabled = false, isA
     lastAudioRef.current = { blob, filename };
     setError(''); setTranscript('');
     changeState('transcribing');
+    transcriptionController.current?.abort();
+    const controller = new AbortController();
+    transcriptionController.current = controller;
     try {
-      const response = await apiClient.transcribeAudio(blob, filename);
+      const response = await apiClient.transcribeAudio(blob, filename, { signal: controller.signal });
       if (!alive.current || operation !== operationRef.current) return;
       if (!response.text.trim()) { fail('La transcripción llegó vacía. Puedes reintentar, grabar de nuevo o subir otro archivo.'); return; }
       setTranscript(response.text);
       changeState('reviewing');
     } catch (cause) {
-      if (alive.current && operation === operationRef.current) fail(cause instanceof Error ? cause.message : 'No pudimos transcribir el audio. Intenta de nuevo o sigue usando el formulario manual.');
-    }
+      if (alive.current && operation === operationRef.current) fail(cause instanceof Error ? cause.message : 'No pudimos transcribir el audio. Intenta de nuevo o sigue usando el formulario manual.', cause instanceof ApiClientError && cause.code === 'retry_exhausted');
+    } finally { if (transcriptionController.current === controller) transcriptionController.current = null; }
   }
 
   async function startRecording() {
@@ -208,11 +217,8 @@ export function VoiceRecorderControl({ onSendReviewedText, disabled = false, isA
           <button type="button" onClick={cancel} className={secondaryClass}>Cancelar</button>
         </div>
       </div>}
-      {state === 'transcribing' && <div className="space-y-2">
-        <p role="status" className="flex items-center gap-2 text-xs text-indigo-800"><Loader2 size={15} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Transcribiendo audio...</p>
-        <button type="button" onClick={cancel} className={secondaryClass}>Cancelar</button>
-      </div>}
-      {state === 'error' && <div role="alert" className="space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs leading-5 text-rose-800">
+      <AssistantRequestStatus pending={state === 'transcribing'} label="Transcribiendo audio..." onCancel={cancel} cancelLabel="Cancelar" />
+      {state === 'error' && <div role={delayedError ? 'status' : 'alert'} className={`space-y-2 rounded-lg border p-3 text-xs leading-5 ${delayedError ? 'border-indigo-200 bg-indigo-50 text-indigo-950' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>
         <p className="flex items-start gap-2"><AlertTriangle size={15} className="mt-0.5 shrink-0" aria-hidden="true" />{error}</p>
         <p>Puedes seguir usando el formulario manual.</p>
         {lastAudioRef.current && <button type="button" disabled={disabled} className="font-semibold underline" onClick={() => { const audio = lastAudioRef.current; if (audio) void transcribe(audio.blob, audio.filename, ++operationRef.current); }}>Reintentar transcripción</button>}

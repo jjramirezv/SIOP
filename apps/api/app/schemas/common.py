@@ -36,6 +36,8 @@ class ErrorDetail(ContractModel):
     ]
     message: str
     details: list[FieldIssue] = Field(default_factory=list)
+    retryable: bool = False
+    retry_after_seconds: Annotated[int, Field(ge=0, le=86400)] | None = None
 
 
 class ErrorResponse(ContractModel):

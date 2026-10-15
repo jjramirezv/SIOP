@@ -1,0 +1,1294 @@
+{
+  "checked_at": "2026-10-15T14:14:54.126Z",
+  "url": "http://localhost:5173/",
+  "provider": "Gemini",
+  "live": true,
+  "audio_origin": "WAV hablado con Microsoft Sabina local; no micrófono físico",
+  "checks": [
+    "Texto real → borrador editable → corrección H=10 → confirmación → Q=200 y CT=48520. El formulario no cambia antes de confirmar.",
+    "Explicación real usa la entrada vigente recalculada por el backend.",
+    "Foto PNG interpretada por Gemini → revisión humana → Q=500 y CT=47522. Precios y mantenimiento extraídos fielmente."
+  ],
+  "calls": [
+    {
+      "label": "Interpretación de texto completo",
+      "attempt": 1,
+      "status": 503,
+      "milliseconds": 1906,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Interpretación de texto completo",
+      "attempt": 2,
+      "status": 200,
+      "milliseconds": 8768,
+      "response": {
+        "contract_version": "1.0.0",
+        "data_source": "assistant",
+        "message": "He preparado el borrador con los nuevos datos de los cuadernos en moneda PEN. Por favor, revisa que los valores coincidan antes de confirmar para realizar el cálculo.",
+        "action": "review_input",
+        "proposed_input": {
+          "product_name": "cuadernos",
+          "currency": "PEN",
+          "demand": {
+            "value": 200,
+            "period": "month"
+          },
+          "order_cost": 40,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 5,
+            "period": "year"
+          },
+          "days_per_year": 360,
+          "discount_tiers": [
+            {
+              "min_quantity": 0,
+              "unit_price": 20
+            },
+            {
+              "min_quantity": 200,
+              "unit_price": 19.6
+            },
+            {
+              "min_quantity": 500,
+              "unit_price": 19.2
+            }
+          ],
+          "current_order_quantity": 200
+        },
+        "missing_fields": [],
+        "review_fields": [
+          {
+            "field": "product_name",
+            "message": "Actualizado a cuadernos."
+          },
+          {
+            "field": "currency",
+            "message": "Actualizado a PEN."
+          },
+          {
+            "field": "demand",
+            "message": "Actualizado a 200 unidades por mes."
+          },
+          {
+            "field": "days_per_year",
+            "message": "Actualizado a 360 días por año."
+          },
+          {
+            "field": "order_cost",
+            "message": "Actualizado a 40 soles por pedido."
+          },
+          {
+            "field": "holding_cost",
+            "message": "Actualizado a costo fijo de 5 soles por unidad al año."
+          },
+          {
+            "field": "discount_tiers",
+            "message": "Actualizada la escala de descuentos por volumen."
+          },
+          {
+            "field": "current_order_quantity",
+            "message": "Actualizado a 200 unidades por pedido."
+          }
+        ],
+        "requires_confirmation": true
+      }
+    },
+    {
+      "label": "Aplicar borrador revisado y calcular",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 155,
+      "response": {
+        "contract_version": "1.0.0",
+        "model": "all_units_discount",
+        "data_source": "calculated",
+        "input": {
+          "product_name": "cuadernos",
+          "currency": "PEN",
+          "demand": {
+            "value": 200,
+            "period": "month"
+          },
+          "order_cost": 40,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 10,
+            "period": "year"
+          },
+          "days_per_year": 360,
+          "discount_tiers": [
+            {
+              "min_quantity": 0,
+              "unit_price": 20
+            },
+            {
+              "min_quantity": 200,
+              "unit_price": 19.6
+            },
+            {
+              "min_quantity": 500,
+              "unit_price": 19.2
+            }
+          ],
+          "current_order_quantity": 200
+        },
+        "normalized": {
+          "annual_demand": 2400,
+          "days_per_year": 360,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 10,
+            "period": "year"
+          }
+        },
+        "candidates": [
+          {
+            "tier_index": 0,
+            "min_quantity": 0,
+            "max_quantity_exclusive": 200,
+            "unit_price": 20,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "feasible",
+            "evaluated_quantity": 139,
+            "annual_costs": {
+              "purchase": 48000,
+              "ordering": 690.6474820143885,
+              "holding": 695,
+              "total": 49385.647482014385
+            },
+            "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+            "order": {
+              "tier_index": 0,
+              "quantity": 139,
+              "unit_price": 20,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 2780,
+              "orders_per_year": 17.26618705035971,
+              "cycle_days": 20.85,
+              "annual_costs": {
+                "purchase": 48000,
+                "ordering": 690.6474820143885,
+                "holding": 695,
+                "total": 49385.647482014385
+              }
+            }
+          },
+          {
+            "tier_index": 1,
+            "min_quantity": 200,
+            "max_quantity_exclusive": 500,
+            "unit_price": 19.6,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "adjusted",
+            "evaluated_quantity": 200,
+            "annual_costs": {
+              "purchase": 47040,
+              "ordering": 480,
+              "holding": 1000,
+              "total": 48520
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 1,
+              "quantity": 200,
+              "unit_price": 19.6,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 3920,
+              "orders_per_year": 12,
+              "cycle_days": 30,
+              "annual_costs": {
+                "purchase": 47040,
+                "ordering": 480,
+                "holding": 1000,
+                "total": 48520
+              }
+            }
+          },
+          {
+            "tier_index": 2,
+            "min_quantity": 500,
+            "max_quantity_exclusive": null,
+            "unit_price": 19.2,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "adjusted",
+            "evaluated_quantity": 500,
+            "annual_costs": {
+              "purchase": 46080,
+              "ordering": 192,
+              "holding": 2500,
+              "total": 48772
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 2,
+              "quantity": 500,
+              "unit_price": 19.2,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 9600,
+              "orders_per_year": 4.8,
+              "cycle_days": 75,
+              "annual_costs": {
+                "purchase": 46080,
+                "ordering": 192,
+                "holding": 2500,
+                "total": 48772
+              }
+            }
+          }
+        ],
+        "recommended": {
+          "tier_index": 1,
+          "quantity": 200,
+          "unit_price": 19.6,
+          "annual_holding_per_unit": 10,
+          "investment_per_order": 3920,
+          "orders_per_year": 12,
+          "cycle_days": 30,
+          "annual_costs": {
+            "purchase": 47040,
+            "ordering": 480,
+            "holding": 1000,
+            "total": 48520
+          }
+        },
+        "comparison": {
+          "current": {
+            "tier_index": 1,
+            "quantity": 200,
+            "unit_price": 19.6,
+            "annual_holding_per_unit": 10,
+            "investment_per_order": 3920,
+            "orders_per_year": 12,
+            "cycle_days": 30,
+            "annual_costs": {
+              "purchase": 47040,
+              "ordering": 480,
+              "holding": 1000,
+              "total": 48520
+            }
+          },
+          "annual_savings": 0,
+          "savings_percentage": 0
+        },
+        "assumptions": [
+          "Demanda constante, reposición instantánea y sin faltantes.",
+          "El descuento aplica a todas las unidades del pedido.",
+          "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+          "Un año tiene 12 meses y 360 días de cálculo.",
+          "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+          "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+          "Los importes conservan precisión interna y se redondean solo al presentar.",
+          "La moneda es una etiqueta; no se convierten divisas."
+        ],
+        "steps": [
+          {
+            "title": "Demanda anual",
+            "formula": "D = demanda × períodos por año",
+            "substitution": "200 × 12",
+            "result": "2400.00 unidades/año"
+          },
+          {
+            "title": "Mantenimiento anual",
+            "formula": "h = importe por unidad × períodos por año",
+            "substitution": "10 × 1",
+            "result": "10.00 PEN/unidad/año"
+          },
+          {
+            "title": "CEP del precio 20.00; tramo [0, 200)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 139. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+          },
+          {
+            "title": "CEP del precio 19.60; tramo [200, 500)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 200. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "CEP del precio 19.20; tramo desde 500",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 500. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "Alternativa de menor costo anual",
+            "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+            "substitution": "47040.00 + 480.00 + 1000.00",
+            "result": "48520.00 PEN/año; 200 unidades por pedido"
+          },
+          {
+            "title": "Frecuencia y duración del ciclo",
+            "formula": "N = D / Q; T = Q / D × días por año",
+            "substitution": "N = 2400.00 / 200; T = 200 / 2400.00 × 360",
+            "result": "12.00 pedidos/año; 30.00 días entre pedidos"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Explicación comercial del análisis vigente",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 6912,
+      "response": {
+        "contract_version": "1.0.0",
+        "data_source": "assistant",
+        "message": "El análisis muestra que la cantidad óptima de compra es de 200 unidades por pedido a un precio unitario de 19.60 PEN. Con esta cantidad, el costo total anual es de 48520.00 PEN (compra: 47040.00 PEN, pedidos: 480.00 PEN y mantenimiento: 1000.00 PEN), realizando 12 pedidos al año cada 30 días. Como tu pedido actual ya es de 200 unidades, tu operación se encuentra en el nivel óptimo.",
+        "action": "explain",
+        "proposed_input": null,
+        "missing_fields": [],
+        "review_fields": [],
+        "requires_confirmation": false
+      }
+    },
+    {
+      "label": "Escenario alternativo",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 3682,
+      "response": {
+        "contract_version": "1.0.0",
+        "data_source": "assistant",
+        "message": "¿Qué dato te gustaría modificar para el nuevo escenario? Puedes cambiar la demanda, el costo de pedido, el costo de mantenimiento o los precios por volumen.",
+        "action": "clarify",
+        "proposed_input": null,
+        "missing_fields": [],
+        "review_fields": [],
+        "requires_confirmation": false
+      }
+    },
+    {
+      "label": "Restaurar escenario calculado para continuar las pruebas",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 194,
+      "response": {
+        "contract_version": "1.0.0",
+        "model": "all_units_discount",
+        "data_source": "calculated",
+        "input": {
+          "product_name": "Sensibilidad A (Mantenimiento Moderado)",
+          "currency": "PEN",
+          "demand": {
+            "value": 2400,
+            "period": "year"
+          },
+          "order_cost": 40,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 10,
+            "period": "year"
+          },
+          "days_per_year": 360,
+          "discount_tiers": [
+            {
+              "min_quantity": 0,
+              "unit_price": 20
+            },
+            {
+              "min_quantity": 200,
+              "unit_price": 19.6
+            },
+            {
+              "min_quantity": 500,
+              "unit_price": 19.2
+            }
+          ],
+          "current_order_quantity": 500
+        },
+        "normalized": {
+          "annual_demand": 2400,
+          "days_per_year": 360,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 10,
+            "period": "year"
+          }
+        },
+        "candidates": [
+          {
+            "tier_index": 0,
+            "min_quantity": 0,
+            "max_quantity_exclusive": 200,
+            "unit_price": 20,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "feasible",
+            "evaluated_quantity": 139,
+            "annual_costs": {
+              "purchase": 48000,
+              "ordering": 690.6474820143885,
+              "holding": 695,
+              "total": 49385.647482014385
+            },
+            "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+            "order": {
+              "tier_index": 0,
+              "quantity": 139,
+              "unit_price": 20,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 2780,
+              "orders_per_year": 17.26618705035971,
+              "cycle_days": 20.85,
+              "annual_costs": {
+                "purchase": 48000,
+                "ordering": 690.6474820143885,
+                "holding": 695,
+                "total": 49385.647482014385
+              }
+            }
+          },
+          {
+            "tier_index": 1,
+            "min_quantity": 200,
+            "max_quantity_exclusive": 500,
+            "unit_price": 19.6,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "adjusted",
+            "evaluated_quantity": 200,
+            "annual_costs": {
+              "purchase": 47040,
+              "ordering": 480,
+              "holding": 1000,
+              "total": 48520
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 1,
+              "quantity": 200,
+              "unit_price": 19.6,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 3920,
+              "orders_per_year": 12,
+              "cycle_days": 30,
+              "annual_costs": {
+                "purchase": 47040,
+                "ordering": 480,
+                "holding": 1000,
+                "total": 48520
+              }
+            }
+          },
+          {
+            "tier_index": 2,
+            "min_quantity": 500,
+            "max_quantity_exclusive": null,
+            "unit_price": 19.2,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "adjusted",
+            "evaluated_quantity": 500,
+            "annual_costs": {
+              "purchase": 46080,
+              "ordering": 192,
+              "holding": 2500,
+              "total": 48772
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 2,
+              "quantity": 500,
+              "unit_price": 19.2,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 9600,
+              "orders_per_year": 4.8,
+              "cycle_days": 75,
+              "annual_costs": {
+                "purchase": 46080,
+                "ordering": 192,
+                "holding": 2500,
+                "total": 48772
+              }
+            }
+          }
+        ],
+        "recommended": {
+          "tier_index": 1,
+          "quantity": 200,
+          "unit_price": 19.6,
+          "annual_holding_per_unit": 10,
+          "investment_per_order": 3920,
+          "orders_per_year": 12,
+          "cycle_days": 30,
+          "annual_costs": {
+            "purchase": 47040,
+            "ordering": 480,
+            "holding": 1000,
+            "total": 48520
+          }
+        },
+        "comparison": {
+          "current": {
+            "tier_index": 2,
+            "quantity": 500,
+            "unit_price": 19.2,
+            "annual_holding_per_unit": 10,
+            "investment_per_order": 9600,
+            "orders_per_year": 4.8,
+            "cycle_days": 75,
+            "annual_costs": {
+              "purchase": 46080,
+              "ordering": 192,
+              "holding": 2500,
+              "total": 48772
+            }
+          },
+          "annual_savings": 252,
+          "savings_percentage": 0.5166899040433035
+        },
+        "assumptions": [
+          "Demanda constante, reposición instantánea y sin faltantes.",
+          "El descuento aplica a todas las unidades del pedido.",
+          "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+          "Un año tiene 12 meses y 360 días de cálculo.",
+          "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+          "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+          "Los importes conservan precisión interna y se redondean solo al presentar.",
+          "La moneda es una etiqueta; no se convierten divisas."
+        ],
+        "steps": [
+          {
+            "title": "Demanda anual",
+            "formula": "D = demanda × períodos por año",
+            "substitution": "2400 × 1",
+            "result": "2400.00 unidades/año"
+          },
+          {
+            "title": "Mantenimiento anual",
+            "formula": "h = importe por unidad × períodos por año",
+            "substitution": "10 × 1",
+            "result": "10.00 PEN/unidad/año"
+          },
+          {
+            "title": "CEP del precio 20.00; tramo [0, 200)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 139. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+          },
+          {
+            "title": "CEP del precio 19.60; tramo [200, 500)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 200. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "CEP del precio 19.20; tramo desde 500",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 500. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "Alternativa de menor costo anual",
+            "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+            "substitution": "47040.00 + 480.00 + 1000.00",
+            "result": "48520.00 PEN/año; 200 unidades por pedido"
+          },
+          {
+            "title": "Frecuencia y duración del ciclo",
+            "formula": "N = D / Q; T = Q / D × días por año",
+            "substitution": "N = 2400.00 / 200; T = 200 / 2400.00 × 360",
+            "result": "12.00 pedidos/año; 30.00 días entre pedidos"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Escenario alternativo",
+      "attempt": 1,
+      "status": 503,
+      "milliseconds": 2126,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Escenario alternativo",
+      "attempt": 2,
+      "status": 503,
+      "milliseconds": 3367,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Restaurar escenario calculado para continuar las pruebas",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 262,
+      "response": {
+        "contract_version": "1.0.0",
+        "model": "all_units_discount",
+        "data_source": "calculated",
+        "input": {
+          "product_name": "Sensibilidad A (Mantenimiento Moderado)",
+          "currency": "PEN",
+          "demand": {
+            "value": 2400,
+            "period": "year"
+          },
+          "order_cost": 40,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 10,
+            "period": "year"
+          },
+          "days_per_year": 360,
+          "discount_tiers": [
+            {
+              "min_quantity": 0,
+              "unit_price": 20
+            },
+            {
+              "min_quantity": 200,
+              "unit_price": 19.6
+            },
+            {
+              "min_quantity": 500,
+              "unit_price": 19.2
+            }
+          ],
+          "current_order_quantity": 500
+        },
+        "normalized": {
+          "annual_demand": 2400,
+          "days_per_year": 360,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 10,
+            "period": "year"
+          }
+        },
+        "candidates": [
+          {
+            "tier_index": 0,
+            "min_quantity": 0,
+            "max_quantity_exclusive": 200,
+            "unit_price": 20,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "feasible",
+            "evaluated_quantity": 139,
+            "annual_costs": {
+              "purchase": 48000,
+              "ordering": 690.6474820143885,
+              "holding": 695,
+              "total": 49385.647482014385
+            },
+            "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+            "order": {
+              "tier_index": 0,
+              "quantity": 139,
+              "unit_price": 20,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 2780,
+              "orders_per_year": 17.26618705035971,
+              "cycle_days": 20.85,
+              "annual_costs": {
+                "purchase": 48000,
+                "ordering": 690.6474820143885,
+                "holding": 695,
+                "total": 49385.647482014385
+              }
+            }
+          },
+          {
+            "tier_index": 1,
+            "min_quantity": 200,
+            "max_quantity_exclusive": 500,
+            "unit_price": 19.6,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "adjusted",
+            "evaluated_quantity": 200,
+            "annual_costs": {
+              "purchase": 47040,
+              "ordering": 480,
+              "holding": 1000,
+              "total": 48520
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 1,
+              "quantity": 200,
+              "unit_price": 19.6,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 3920,
+              "orders_per_year": 12,
+              "cycle_days": 30,
+              "annual_costs": {
+                "purchase": 47040,
+                "ordering": 480,
+                "holding": 1000,
+                "total": 48520
+              }
+            }
+          },
+          {
+            "tier_index": 2,
+            "min_quantity": 500,
+            "max_quantity_exclusive": null,
+            "unit_price": 19.2,
+            "annual_holding_per_unit": 10,
+            "theoretical_eoq": 138.5640646055102,
+            "status": "adjusted",
+            "evaluated_quantity": 500,
+            "annual_costs": {
+              "purchase": 46080,
+              "ordering": 192,
+              "holding": 2500,
+              "total": 48772
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 2,
+              "quantity": 500,
+              "unit_price": 19.2,
+              "annual_holding_per_unit": 10,
+              "investment_per_order": 9600,
+              "orders_per_year": 4.8,
+              "cycle_days": 75,
+              "annual_costs": {
+                "purchase": 46080,
+                "ordering": 192,
+                "holding": 2500,
+                "total": 48772
+              }
+            }
+          }
+        ],
+        "recommended": {
+          "tier_index": 1,
+          "quantity": 200,
+          "unit_price": 19.6,
+          "annual_holding_per_unit": 10,
+          "investment_per_order": 3920,
+          "orders_per_year": 12,
+          "cycle_days": 30,
+          "annual_costs": {
+            "purchase": 47040,
+            "ordering": 480,
+            "holding": 1000,
+            "total": 48520
+          }
+        },
+        "comparison": {
+          "current": {
+            "tier_index": 2,
+            "quantity": 500,
+            "unit_price": 19.2,
+            "annual_holding_per_unit": 10,
+            "investment_per_order": 9600,
+            "orders_per_year": 4.8,
+            "cycle_days": 75,
+            "annual_costs": {
+              "purchase": 46080,
+              "ordering": 192,
+              "holding": 2500,
+              "total": 48772
+            }
+          },
+          "annual_savings": 252,
+          "savings_percentage": 0.5166899040433035
+        },
+        "assumptions": [
+          "Demanda constante, reposición instantánea y sin faltantes.",
+          "El descuento aplica a todas las unidades del pedido.",
+          "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+          "Un año tiene 12 meses y 360 días de cálculo.",
+          "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+          "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+          "Los importes conservan precisión interna y se redondean solo al presentar.",
+          "La moneda es una etiqueta; no se convierten divisas."
+        ],
+        "steps": [
+          {
+            "title": "Demanda anual",
+            "formula": "D = demanda × períodos por año",
+            "substitution": "2400 × 1",
+            "result": "2400.00 unidades/año"
+          },
+          {
+            "title": "Mantenimiento anual",
+            "formula": "h = importe por unidad × períodos por año",
+            "substitution": "10 × 1",
+            "result": "10.00 PEN/unidad/año"
+          },
+          {
+            "title": "CEP del precio 20.00; tramo [0, 200)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 139. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+          },
+          {
+            "title": "CEP del precio 19.60; tramo [200, 500)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 200. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "CEP del precio 19.20; tramo desde 500",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 10.00)",
+            "result": "CEP teórica 138.56; cantidad entera evaluada 500. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "Alternativa de menor costo anual",
+            "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+            "substitution": "47040.00 + 480.00 + 1000.00",
+            "result": "48520.00 PEN/año; 200 unidades por pedido"
+          },
+          {
+            "title": "Frecuencia y duración del ciclo",
+            "formula": "N = D / Q; T = Q / D × días por año",
+            "substitution": "N = 2400.00 / 200; T = 200 / 2400.00 × 360",
+            "result": "12.00 pedidos/año; 30.00 días entre pedidos"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Escenario alternativo",
+      "attempt": 1,
+      "status": 503,
+      "milliseconds": 2824,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Escenario alternativo",
+      "attempt": 2,
+      "status": 503,
+      "milliseconds": 5238,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Extracción real de cotización PNG",
+      "attempt": 1,
+      "status": 503,
+      "milliseconds": 2377,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Extracción real de cotización PNG",
+      "attempt": 2,
+      "status": 200,
+      "milliseconds": 9365,
+      "response": {
+        "contract_version": "1.0.0",
+        "data_source": "assistant",
+        "message": "He extraído los datos de la cotización adjunta de Proveedor Andino. Por favor, revisa y confirma si deseas actualizar el borrador con estos valores.",
+        "action": "review_input",
+        "proposed_input": {
+          "product_name": "Cuadernos",
+          "currency": "PEN",
+          "demand": {
+            "value": 200,
+            "period": "month"
+          },
+          "order_cost": 40,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 5,
+            "period": "year"
+          },
+          "days_per_year": 360,
+          "discount_tiers": [
+            {
+              "min_quantity": 0,
+              "unit_price": 20
+            },
+            {
+              "min_quantity": 200,
+              "unit_price": 19.6
+            },
+            {
+              "min_quantity": 500,
+              "unit_price": 19.2
+            }
+          ],
+          "current_order_quantity": 200
+        },
+        "missing_fields": [],
+        "review_fields": [
+          {
+            "field": "product_name",
+            "message": "Cambia de 'Sensibilidad A (Mantenimiento Moderado)' a 'Cuadernos' según la cotización."
+          },
+          {
+            "field": "demand",
+            "message": "Cambia de 2400 unidades al año a 200 unidades al mes según la cotización."
+          },
+          {
+            "field": "holding_cost.value",
+            "message": "Cambia de 10.00 a 5.00 PEN por unidad al año según la cotización."
+          },
+          {
+            "field": "current_order_quantity",
+            "message": "Cambia de 500 a 200 unidades por pedido según la compra actual indicada en la cotización."
+          }
+        ],
+        "requires_confirmation": true
+      }
+    },
+    {
+      "label": "Aplicar borrador revisado y calcular",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 137,
+      "response": {
+        "contract_version": "1.0.0",
+        "model": "all_units_discount",
+        "data_source": "calculated",
+        "input": {
+          "product_name": "Cuadernos",
+          "currency": "PEN",
+          "demand": {
+            "value": 200,
+            "period": "month"
+          },
+          "order_cost": 40,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 5,
+            "period": "year"
+          },
+          "days_per_year": 360,
+          "discount_tiers": [
+            {
+              "min_quantity": 0,
+              "unit_price": 20
+            },
+            {
+              "min_quantity": 200,
+              "unit_price": 19.6
+            },
+            {
+              "min_quantity": 500,
+              "unit_price": 19.2
+            }
+          ],
+          "current_order_quantity": 200
+        },
+        "normalized": {
+          "annual_demand": 2400,
+          "days_per_year": 360,
+          "holding_cost": {
+            "mode": "fixed",
+            "value": 5,
+            "period": "year"
+          }
+        },
+        "candidates": [
+          {
+            "tier_index": 0,
+            "min_quantity": 0,
+            "max_quantity_exclusive": 200,
+            "unit_price": 20,
+            "annual_holding_per_unit": 5,
+            "theoretical_eoq": 195.95917942265424,
+            "status": "feasible",
+            "evaluated_quantity": 196,
+            "annual_costs": {
+              "purchase": 48000,
+              "ordering": 489.7959183673469,
+              "holding": 490,
+              "total": 48979.795918367345
+            },
+            "reason": "Se comparan las cantidades enteras vecinas y los límites factibles del tramo.",
+            "order": {
+              "tier_index": 0,
+              "quantity": 196,
+              "unit_price": 20,
+              "annual_holding_per_unit": 5,
+              "investment_per_order": 3920,
+              "orders_per_year": 12.244897959183673,
+              "cycle_days": 29.4,
+              "annual_costs": {
+                "purchase": 48000,
+                "ordering": 489.7959183673469,
+                "holding": 490,
+                "total": 48979.795918367345
+              }
+            }
+          },
+          {
+            "tier_index": 1,
+            "min_quantity": 200,
+            "max_quantity_exclusive": 500,
+            "unit_price": 19.6,
+            "annual_holding_per_unit": 5,
+            "theoretical_eoq": 195.95917942265424,
+            "status": "adjusted",
+            "evaluated_quantity": 200,
+            "annual_costs": {
+              "purchase": 47040,
+              "ordering": 480,
+              "holding": 500,
+              "total": 48020
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 1,
+              "quantity": 200,
+              "unit_price": 19.6,
+              "annual_holding_per_unit": 5,
+              "investment_per_order": 3920,
+              "orders_per_year": 12,
+              "cycle_days": 30,
+              "annual_costs": {
+                "purchase": 47040,
+                "ordering": 480,
+                "holding": 500,
+                "total": 48020
+              }
+            }
+          },
+          {
+            "tier_index": 2,
+            "min_quantity": 500,
+            "max_quantity_exclusive": null,
+            "unit_price": 19.2,
+            "annual_holding_per_unit": 5,
+            "theoretical_eoq": 195.95917942265424,
+            "status": "adjusted",
+            "evaluated_quantity": 500,
+            "annual_costs": {
+              "purchase": 46080,
+              "ordering": 192,
+              "holding": 1250,
+              "total": 47522
+            },
+            "reason": "Se ajusta al mínimo del descuento.",
+            "order": {
+              "tier_index": 2,
+              "quantity": 500,
+              "unit_price": 19.2,
+              "annual_holding_per_unit": 5,
+              "investment_per_order": 9600,
+              "orders_per_year": 4.8,
+              "cycle_days": 75,
+              "annual_costs": {
+                "purchase": 46080,
+                "ordering": 192,
+                "holding": 1250,
+                "total": 47522
+              }
+            }
+          }
+        ],
+        "recommended": {
+          "tier_index": 2,
+          "quantity": 500,
+          "unit_price": 19.2,
+          "annual_holding_per_unit": 5,
+          "investment_per_order": 9600,
+          "orders_per_year": 4.8,
+          "cycle_days": 75,
+          "annual_costs": {
+            "purchase": 46080,
+            "ordering": 192,
+            "holding": 1250,
+            "total": 47522
+          }
+        },
+        "comparison": {
+          "current": {
+            "tier_index": 1,
+            "quantity": 200,
+            "unit_price": 19.6,
+            "annual_holding_per_unit": 5,
+            "investment_per_order": 3920,
+            "orders_per_year": 12,
+            "cycle_days": 30,
+            "annual_costs": {
+              "purchase": 47040,
+              "ordering": 480,
+              "holding": 500,
+              "total": 48020
+            }
+          },
+          "annual_savings": 498,
+          "savings_percentage": 1.0370678883798417
+        },
+        "assumptions": [
+          "Demanda constante, reposición instantánea y sin faltantes.",
+          "El descuento aplica a todas las unidades del pedido.",
+          "Cada mínimo pertenece a su tramo; la cota superior es exclusiva.",
+          "Un año tiene 12 meses y 360 días de cálculo.",
+          "Se comparan cantidades enteras factibles; la CEP teórica puede tener decimales.",
+          "El costo anual incluye compra, pedidos y mantenimiento; no incluye costos no ingresados.",
+          "Los importes conservan precisión interna y se redondean solo al presentar.",
+          "La moneda es una etiqueta; no se convierten divisas."
+        ],
+        "steps": [
+          {
+            "title": "Demanda anual",
+            "formula": "D = demanda × períodos por año",
+            "substitution": "200 × 12",
+            "result": "2400.00 unidades/año"
+          },
+          {
+            "title": "Mantenimiento anual",
+            "formula": "h = importe por unidad × períodos por año",
+            "substitution": "5 × 1",
+            "result": "5.00 PEN/unidad/año"
+          },
+          {
+            "title": "CEP del precio 20.00; tramo [0, 200)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 5.00)",
+            "result": "CEP teórica 195.96; cantidad entera evaluada 196. Se comparan las cantidades enteras vecinas y los límites factibles del tramo."
+          },
+          {
+            "title": "CEP del precio 19.60; tramo [200, 500)",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 5.00)",
+            "result": "CEP teórica 195.96; cantidad entera evaluada 200. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "CEP del precio 19.20; tramo desde 500",
+            "formula": "Q_j = sqrt(2 × D × C2 / h_j)",
+            "substitution": "sqrt(2 × 2400.00 × 40.00 / 5.00)",
+            "result": "CEP teórica 195.96; cantidad entera evaluada 500. Se ajusta al mínimo del descuento."
+          },
+          {
+            "title": "Alternativa de menor costo anual",
+            "formula": "CT = precio × D + C2 × D / Q + h × Q / 2",
+            "substitution": "46080.00 + 192.00 + 1250.00",
+            "result": "47522.00 PEN/año; 500 unidades por pedido"
+          },
+          {
+            "title": "Frecuencia y duración del ciclo",
+            "formula": "N = D / Q; T = Q / D × días por año",
+            "substitution": "N = 2400.00 / 500; T = 500 / 2400.00 × 360",
+            "result": "4.80 pedidos/año; 75.00 días entre pedidos"
+          }
+        ]
+      }
+    },
+    {
+      "label": "Transcripción real de WAV hablado en español",
+      "attempt": 1,
+      "status": 200,
+      "milliseconds": 5655,
+      "response": {
+        "text": "Producto, cuadernos. Moneda, soles peruanos. Vendo 200 unidades al mes. Trabajo 360 días por año. Cada pedido cuesta 40 soles. Guardar cada unidad cuesta 5 soles al año como monto fijo. El proveedor cobra 20 soles por unidad desde cero unidades, 19 soles con 60 céntimos desde 200 y 19 soles con 20 céntimos desde 500 unidades. Compro actualmente 200 unidades por pedido.",
+        "language": "es"
+      }
+    },
+    {
+      "label": "Texto revisado de voz por el flujo común del asistente",
+      "attempt": 1,
+      "status": 503,
+      "milliseconds": 2446,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "label": "Texto revisado de voz por el flujo común del asistente",
+      "attempt": 2,
+      "status": 503,
+      "milliseconds": 5841,
+      "response": {
+        "error": {
+          "code": "ASSISTANT_UNAVAILABLE",
+          "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.",
+          "details": [
+            {
+              "field": "$",
+              "message": "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "page_errors": [],
+  "completed": false,
+  "previous_checked_at": "2026-10-15T14:13:09.118Z",
+  "pending": [
+    {
+      "feature": "Escenario alternativo",
+      "reason": "Escenario alternativo: {\"error\":{\"code\":\"ASSISTANT_UNAVAILABLE\",\"message\":\"Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.\",\"details\":[{\"field\":\"$\",\"message\":\"Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.\"}]}}\n\n503 !== 200\n"
+    }
+  ],
+  "failure": "Texto revisado de voz por el flujo común del asistente: {\"error\":{\"code\":\"ASSISTANT_UNAVAILABLE\",\"message\":\"Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.\",\"details\":[{\"field\":\"$\",\"message\":\"Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo.\"}]}}\n\n503 !== 200\n"
+}

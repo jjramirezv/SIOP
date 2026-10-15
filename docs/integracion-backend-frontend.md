@@ -1,6 +1,6 @@
 # Integración de SIOP — 15 de octubre de 2026
 
-El frontend usa el motor de Python y los endpoints reales de FastAPI. Se preservó la distribución de «Mesa de decisión». La interpretación y transcripción exitosas con Gemini requieren la clave y el modelo que todavía no están disponibles en este proyecto.
+El frontend usa el motor de Python y los endpoints reales de FastAPI. Se preservó la distribución de «Mesa de decisión». La clave y el modelo ya se cargan desde el `.env` de la raíz. Se comprobaron respuestas reales de texto, fotografía y audio; el proveedor presentó saturación intermitente. El registro de esta comprobación está en [pruebas-gemini.md](pruebas-gemini.md).
 
 ## Organización y conservación de archivos
 
@@ -36,7 +36,7 @@ Los comandos reproducibles están en la sección 13 del [README](../README.md). 
 
 Resultado final comprobado:
 
-- `pytest -q`: 147 pruebas aprobadas.
+- `pytest -q`: 148 pruebas aprobadas.
 - `npm test`: 111 pruebas aprobadas en 7 archivos.
 - `npm run build`: compilación correcta, cero errores o avisos de TypeScript.
 - `npm ci`: instalación reproducible completada; auditoría de npm con cero vulnerabilidades conocidas.
@@ -52,15 +52,17 @@ Resultado final comprobado:
 
 También se verificaron demanda mensual equivalente a anual, compra actual, señal de resultados desactualizados, procedimiento, tablas en 1366/390/320 px sin desbordamiento y ausencia de errores JavaScript.
 
-Con `ai_available=false`, texto y fotografía llegaron a sus endpoints y devolvieron 503. MediaRecorder produjo WebM que pasó la validación de formato y llegó al servicio de transcripción, que devolvió el mismo error controlado de configuración. La calculadora siguió operativa. Los éxitos y errores del proveedor se cubren en pruebas aisladas con dobles; eso no acredita acceso real a Gemini.
+En la verificación inicial, antes de configurar la clave, con `ai_available=false`, texto y fotografía llegaron a sus endpoints y devolvieron 503. MediaRecorder produjo WebM que pasó la validación de formato y llegó al servicio de transcripción, que devolvió el mismo error controlado de configuración. La calculadora siguió operativa. Los éxitos y errores del proveedor se cubren en pruebas aisladas con dobles; eso no acredita acceso real a Gemini.
 
 Informe del navegador: [integracion-real.json](../apps/web/design/evidencia/integracion-real.json). Capturas: [escritorio](../apps/web/design/evidencia/integracion-1366.png), [móvil](../apps/web/design/evidencia/integracion-390.png) y [asistente](../apps/web/design/evidencia/integracion-asistente.png).
 
-## Pendiente para aceptar la IA real
+## Estado posterior a configurar Gemini
 
-Configurar `GEMINI_API_KEY` y `GEMINI_TEXT_MODEL` en `apps/api/.env` y reiniciar la API. Después comprobar con el proveedor: texto → borrador → revisión → aplicación; fotografía legible → borrador; audio hablado → transcripción editable → mensaje → borrador. La clave permanece en el servidor y fuera de Git.
+El archivo adjuntado como `.env.txt` se renombró a `.env` y la API se reinició. Las variables `GEMINI_API_KEY` y `GEMINI_TEXT_MODEL` se cargaron correctamente. El archivo sigue ignorado por Git y la clave no aparece en los bundles ni en los archivos públicos del proyecto.
 
-`GET /health` informa configuración, no una prueba de acceso al proveedor. Aún faltan la grabación con hardware físico, revisión conjunta del equipo y evidencia de WinQSB; no se declaran completadas por estas pruebas.
+Se comprobaron respuestas 200 de los tres canales y de explicación/escenario, además de un cálculo correcto desde la transcripción. El recorrido continuo del navegador encontró respuestas 503 de Gemini; los puntos afectados se comprobaron posteriormente por API. No se presenta ese recorrido continuo como una suite completamente aprobada. Ver [el detalle y la evidencia](pruebas-gemini.md).
+
+`GET /health` informa configuración, no una prueba de acceso al proveedor. La captura con micrófono físico, la revisión conjunta del equipo y WinQSB siguen pendientes. El WAV usado contiene voz sintetizada localmente en español.
 
 ## Avisos de dependencias
 

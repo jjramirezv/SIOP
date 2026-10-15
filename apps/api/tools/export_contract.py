@@ -37,7 +37,7 @@ def generate_contract() -> dict:
         operation = document['paths'][path]['post']
         for status, description in {
             '413': 'Archivo demasiado grande.', '415': 'Formato no admitido.',
-            '502': 'Error del proveedor.', '503': 'Asistente no configurado.',
+            '502': 'Error del proveedor.', '503': 'Asistente no configurado o temporalmente no disponible.',
             '504': 'Tiempo de espera agotado.',
         }.items():
             operation['responses'][status] = {

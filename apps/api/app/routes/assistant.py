@@ -41,6 +41,8 @@ def failure_response(exc):
         error=ErrorDetail(
             code=exc.code,
             message=str(exc),
+            retryable=exc.retryable,
+            retry_after_seconds=exc.retry_after_seconds,
             details=[
                 FieldIssue(field=exc.field, message=str(exc))
             ],
@@ -50,6 +52,7 @@ def failure_response(exc):
     return JSONResponse(
         status_code=exc.status,
         content=body.model_dump(mode="json"),
+        headers={"Retry-After": str(exc.retry_after_seconds)} if exc.retry_after_seconds is not None else None,
     )
 
 

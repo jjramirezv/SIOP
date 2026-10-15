@@ -87,7 +87,7 @@ describe('Ciclo de vida del micrófono', () => {
     stops.forEach((stop) => expect(stop).toHaveBeenCalled());
     expect(onSend).not.toHaveBeenCalled();
     await act(async () => { await Promise.resolve(); });
-    expect(apiClient.transcribeAudio).toHaveBeenCalledWith(expect.any(Blob), 'grabacion.webm');
+    expect(apiClient.transcribeAudio).toHaveBeenCalledWith(expect.any(Blob), 'grabacion.webm', expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(screen.getByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:')).toHaveProperty('value', 'Transcripción inicial.');
     expect(onSend).not.toHaveBeenCalled();
   });
@@ -171,7 +171,7 @@ describe('Ciclo de vida del micrófono', () => {
     render(<VoiceRecorderControl onSendReviewedText={vi.fn()} />);
     await start();
     fireEvent.click(screen.getByRole('button', { name: 'Detener y transcribir' }));
-    await waitFor(() => expect(apiClient.transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/mp4' }), 'grabacion.m4a'));
+    await waitFor(() => expect(apiClient.transcribeAudio).toHaveBeenCalledWith(expect.objectContaining({ type: 'audio/mp4' }), 'grabacion.m4a', expect.objectContaining({ signal: expect.any(AbortSignal) })));
   });
 
   it('no envía una grabación sin audio', async () => {
@@ -199,7 +199,7 @@ describe('Audio subido, transcripción y revisión humana', () => {
     const user = userEvent.setup();
     const file = new File(['audio'], 'ejercicio.wav', { type: 'audio/wav' });
     await user.upload(screen.getByLabelText('Archivo de audio para transcribir'), file);
-    expect(apiClient.transcribeAudio).toHaveBeenCalledWith(file, 'ejercicio.wav');
+    expect(apiClient.transcribeAudio).toHaveBeenCalledWith(file, 'ejercicio.wav', expect.objectContaining({ signal: expect.any(AbortSignal) }));
     const textarea = await screen.findByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:');
     expect(getUserMedia).not.toHaveBeenCalled();
     expect(onSend).not.toHaveBeenCalled();
@@ -230,7 +230,7 @@ describe('Audio subido, transcripción y revisión humana', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('no está disponible');
     await user.click(screen.getByRole('button', { name: 'Reintentar transcripción' }));
     expect(await screen.findByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:')).toBeDefined();
-    expect(apiClient.transcribeAudio).toHaveBeenLastCalledWith(file, 'voz.mp3');
+    expect(apiClient.transcribeAudio).toHaveBeenLastCalledWith(file, 'voz.mp3', expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(getUserMedia).not.toHaveBeenCalled();
   });
 
@@ -288,7 +288,7 @@ describe('Voz integrada con el flujo de Texto', () => {
     const exact = `  ${MOCK_TRANSCRIPTION_TEXT}\n  `;
     fireEvent.change(assistant.getByLabelText('Revisa o corrige la transcripción antes de enviarla al asistente:'), { target: { value: exact } });
     await user.click(assistant.getByRole('button', { name: 'Enviar texto revisado al asistente' }));
-    expect(apiClient.sendAssistantMessage).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: exact }));
+    expect(apiClient.sendAssistantMessage).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ message: exact }), expect.objectContaining({ signal: expect.any(AbortSignal) }));
     const draft = await assistant.findByRole('region', { name: 'Borrador revisable del asistente' });
     expect(apiClient.runAnalysis).toHaveBeenCalledTimes(1);
     expect((screen.getByLabelText('¿Cuántas unidades vendes o necesitas?') as HTMLInputElement).value).toBe('10000');

@@ -6,7 +6,7 @@ Este recorrido conserva el orden de «Revisión del sprint» del README y utiliz
 
 - Iniciar backend y frontend con los comandos de la sección 13 del README y abrir la URL mostrada por Vite.
 - Verificar «Motor conectado» en el encabezado. Los casos del selector son entradas de ejemplo calculadas por Python.
-- Configurar clave y modelo de Gemini en `apps/api/.env` antes de demostrar las respuestas de IA. Sin credenciales, mostrar el error recuperable y continuar con la calculadora; registrar estos pasos como pendientes.
+- La clave y el modelo de Gemini ya se cargan desde el `.env` de la raíz. Si se prepara otro entorno, configurarlos antes de demostrar la IA. Ante saturación del proveedor, mostrar el error recuperable y continuar manualmente o reintentar.
 - Usar localhost o HTTPS para el micrófono y disponer de una imagen PNG/JPEG/WebP de hasta 5 MB y un audio WebM/MP3/WAV/M4A de hasta 10 MB.
 
 ## Paso 1. Caso manual y verificación de referencias
@@ -46,7 +46,7 @@ Este recorrido conserva el orden de «Revisión del sprint» del README y utiliz
 4. Revisar moneda, demanda, períodos, mantenimiento y cada precio. Editar un número dentro del borrador; comprobar que todavía no cambió el formulario.
 5. Usar **Aplicar datos al formulario y calcular** para confirmar la propuesta; también demostrar que **Descartar propuesta** conserva los datos anteriores.
 
-**Evidencia esperada:** fotografía → propuesta editable → confirmación explícita → cálculo. Requiere credenciales de Gemini y permanece pendiente de validación con el proveedor.
+**Evidencia esperada:** fotografía → propuesta editable → confirmación explícita → cálculo. La extracción real fue comprobada con una cotización legible. El proveedor puede responder con saturación temporal.
 
 ## Paso 5. Voz, edición de la transcripción y aplicación
 
@@ -75,4 +75,4 @@ Este recorrido conserva el orden de «Revisión del sprint» del README y utiliz
 - Backend organizado en `apps/api/`, cliente conectado por HTTP y controles de simulación retirados.
 - Comprobaciones y evidencia vigentes: [integracion-backend-frontend.md](integracion-backend-frontend.md).
 - El recorrido automatizado usa el motor real y captura WebM con el dispositivo de pruebas de Chrome. Esto comprueba el transporte y el manejo de falta de configuración, sin acreditar un micrófono físico ni una transcripción exitosa con Gemini.
-- Para aceptar los pasos de IA, registrar respuestas reales del proveedor después de configurar clave/modelo, además de la revisión de Jelibeth y la evidencia de WinQSB cuando esté disponible.
+- Las respuestas reales y las incidencias de saturación están en [pruebas-gemini.md](pruebas-gemini.md). Siguen pendientes la captura con micrófono físico, la revisión de Jelibeth y la evidencia de WinQSB.

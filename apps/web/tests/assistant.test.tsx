@@ -147,7 +147,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     const { user, assistant } = await openAssistant();
     await user.click(assistant.getByRole('button', { name: 'Explícame el resultado' }));
     expect(await assistant.findByText(/Explicación simulada del cálculo enviado: conviene pedir 1000 unidades/)).toBeDefined();
-    expect(apiClient.sendAssistantMessage).toHaveBeenLastCalledWith(expect.objectContaining({ current_result: REFERENCE_CASES.ily.response }));
+    expect(apiClient.sendAssistantMessage).toHaveBeenLastCalledWith(expect.objectContaining({ current_result: REFERENCE_CASES.ily.response }), expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(assistant.queryByRole('region', { name: 'Borrador revisable del asistente' })).toBeNull();
     await user.type(screen.getByLabelText('¿Qué producto estás comprando?'), ' editado');
     expect((assistant.getByRole('button', { name: 'Explícame el resultado' }) as HTMLButtonElement).disabled).toBe(true);
@@ -163,7 +163,7 @@ describe('Asistente integrado y protección del ingreso manual', () => {
     expect(assistant.getByAltText('Vista previa de la cotización seleccionada')).toBeDefined();
     await user.type(assistant.getByLabelText('Contexto adicional de la foto'), EXAMPLE_EXERCISE);
     await user.click(assistant.getByRole('button', { name: 'Extraer datos de la fotografía' }));
-    expect(apiClient.extractFromImage).toHaveBeenCalledWith(photo, EXAMPLE_EXERCISE, REFERENCE_CASES.ily.request);
+    expect(apiClient.extractFromImage).toHaveBeenCalledWith(photo, EXAMPLE_EXERCISE, REFERENCE_CASES.ily.request, expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(await assistant.findByRole('region', { name: 'Borrador revisable del asistente' })).toBeDefined();
     expect(apiClient.runAnalysis).toHaveBeenCalledTimes(1);
     await user.upload(assistant.getByLabelText('Selecciona una fotografía o cotización'), new File(['otra'], 'otra.png', { type: 'image/png' }));

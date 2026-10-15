@@ -1,0 +1,3 @@
+# Dependencias Python de SIOP. Ejecutar desde la raíz del repositorio.
+# Las dependencias del frontend se instalan con npm ci en apps/web/.
+-r apps/api/requirements.txt

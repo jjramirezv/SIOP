@@ -96,3 +96,123 @@ describe('Cliente HTTP real y contrato compartido', () => {
     await pending;
   });
 });
+
+describe('Espera y reintentos automáticos del asistente', () => {
+  const busy = (status = 503, retryAfter = 0) => jsonResponse({ error: {
+    code: 'ASSISTANT_UNAVAILABLE', message: 'Límite temporal', retryable: true, retry_after_seconds: retryAfter,
+  } }, status);
+
+  it('reintenta saturación y límite temporal con el mismo mensaje y contexto', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(busy(429))
+      .mockResolvedValueOnce(jsonResponse(read('contracts/examples/assistant-response.json')));
+    vi.stubGlobal('fetch', fetchMock);
+    const payload = { message: 'Mensaje original', current_draft: structuredClone(REFERENCE_CASES.ily.request) };
+    const pending = apiClient.sendAssistantMessage(payload);
+    await vi.advanceTimersByTimeAsync(0);
+    payload.message = 'Edición posterior'; payload.current_draft.demand = 123;
+    await vi.advanceTimersByTimeAsync(2999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(6000);
+    expect((await pending).proposed_data?.demand).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(JSON.parse(init.body).message).toBe('Mensaje original');
+      expect(JSON.parse(init.body).draft.demand.value).toBe(10000);
+    }
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(['foto', 'audio'])('reutiliza el archivo y los datos de %s sin otra selección', async (kind) => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(jsonResponse(
+      kind === 'foto' ? read('contracts/examples/assistant-response.json') : { text: 'Vendo 200 unidades al mes.' },
+    ));
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = kind === 'foto'
+      ? apiClient.extractFromImage(new File(['imagen'], 'cotizacion.png', { type: 'image/png' }), 'Nota conservada')
+      : apiClient.transcribeAudio(new Blob(['audio'], { type: 'audio/wav' }), 'voz.wav');
+    await vi.advanceTimersByTimeAsync(3000);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [first, second] = fetchMock.mock.calls.map(([, init]) => init.body as FormData);
+    expect(second).toBe(first);
+    expect((second.get('file') as File).name).toBe(kind === 'foto' ? 'cotizacion.png' : 'voz.wav');
+    if (kind === 'foto') expect(second.get('context')).toBe('Nota conservada');
+  });
+
+  it('respeta la pausa mínima indicada por el servidor', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(busy(429, 10)).mockResolvedValueOnce(jsonResponse({ text: 'Audio transcrito.' }));
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = apiClient.transcribeAudio(new Blob(['audio']));
+    await vi.advanceTimersByTimeAsync(9999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('detiene los intentos y devuelve un mensaje amable conservando la solicitud', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockImplementation(async () => busy());
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = expect(apiClient.sendAssistantMessage({ message: 'Conservar este ejercicio' })).rejects.toMatchObject({
+      code: 'retry_exhausted', message: expect.stringContaining('Conservamos tu solicitud'),
+    });
+    await vi.advanceTimersByTimeAsync(60000);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('aplica un plazo total incluso cuando el siguiente intento no responde', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValueOnce(busy(503, 120)).mockImplementationOnce((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = expect(apiClient.sendAssistantMessage({ message: 'Ejercicio' })).rejects.toMatchObject({ code: 'retry_exhausted' });
+    await vi.advanceTimersByTimeAsync(180000);
+    await pending;
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('conserva la solicitud sin reintentar una cuota que no se restablecerá en varias horas', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: {
+      message: 'Cuota diaria agotada', retryable: false, retry_after_seconds: 33600,
+    } }, 503));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiClient.sendAssistantMessage({ message: 'Conservar ejercicio' })).rejects.toMatchObject({
+      code: 'retry_exhausted', message: expect.stringContaining('Conservamos tu solicitud'),
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['pausa', 'petición'])('cancelar durante %s detiene también futuros reintentos', async (phase) => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const fetchMock = phase === 'pausa' ? vi.fn().mockImplementation(async () => busy())
+      : vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+      }));
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = expect(apiClient.sendAssistantMessage({ message: 'Ejercicio' }, { signal: controller.signal })).rejects.toMatchObject({ code: 'cancelled' });
+    await vi.advanceTimersByTimeAsync(0);
+    controller.abort();
+    await pending;
+    await vi.advanceTimersByTimeAsync(180000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([401, 422, 503])('no disfraza ni reintenta errores de configuración o validación HTTP %s', async (status) => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: { code: 'ERROR', message: 'Revisa la configuración.', retryable: false } }, status));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiClient.sendAssistantMessage({ message: 'Ejercicio' })).rejects.toMatchObject({ code: 'http', status });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

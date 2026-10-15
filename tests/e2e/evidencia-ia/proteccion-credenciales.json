@@ -1,0 +1,6 @@
+{
+  "clave_cargada": true,
+  "archivos_con_clave_fuera_de_env": [],
+  "env_ignorado_por_git": true,
+  "env_versionado": false
+}

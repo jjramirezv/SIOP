@@ -3,6 +3,8 @@
 
 import json
 import logging
+import math
+import re
 
 import httpx
 from google import genai
@@ -18,11 +20,13 @@ from app.services.analysis_service import analyze
 logger = logging.getLogger(__name__)
 
 class AssistantFailure(Exception):
-    def __init__(self, status, code, message, field="$"):
+    def __init__(self, status, code, message, field="$", *, retryable=False, retry_after_seconds=None):
         super().__init__(message)
         self.status = status
         self.code = code
         self.field = field
+        self.retryable = retryable
+        self.retry_after_seconds = retry_after_seconds
 
 
 INSTRUCTIONS = """
@@ -58,6 +62,38 @@ Devuelve data_source=assistant y contract_version=1.0.0.
 """
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
+
+
+def provider_retry_hint(exc):
+    """Respect RetryInfo and daily quotas instead of retrying an hours-long wait."""
+    def duration(value):
+        if not isinstance(value, str):
+            return None
+        match = re.fullmatch(r'(?:(\d+(?:\.\d+)?)h)?(?:(\d+(?:\.\d+)?)m)?(?:(\d+(?:\.\d+)?)s)?', value.lower().rstrip('.'))
+        if not match or not any(match.groups()):
+            return None
+        seconds = sum(float(part or 0) * factor for part, factor in zip(match.groups(), (3600, 60, 1)))
+        return math.ceil(min(seconds, 86400))
+
+    payload = exc.details if isinstance(exc.details, dict) else {}
+    payload = payload.get('error', payload)
+    issues = payload.get('details', []) if isinstance(payload, dict) else []
+    delay, daily = None, False
+    for issue in issues if isinstance(issues, list) else []:
+        if not isinstance(issue, dict):
+            continue
+        if str(issue.get('@type', '')).endswith('RetryInfo'):
+            delay = duration(issue.get('retryDelay'))
+        violations = issue.get('violations', [])
+        for violation in violations if isinstance(violations, list) else []:
+            if isinstance(violation, dict) and 'perday' in str(violation.get('quotaId', '')).lower():
+                daily = True
+    if delay is None:
+        match = re.search(r'\bretry in\s+([0-9.hms]+)', str(exc.message or ''), re.IGNORECASE)
+        delay = duration(match.group(1)) if match else None
+    if daily:
+        delay = max(180, delay if delay is not None else 86400)
+    return delay, daily
 
 
 def request_structured_response(
@@ -111,6 +147,7 @@ def request_structured_response(
             502, "UPSTREAM_ERROR", "No se pudo conectar con Gemini.",
         ) from exc
     except errors.APIError as exc:
+        retry_hint, daily_quota = provider_retry_hint(exc)
         detail = str(exc.message or "Sin detalle").replace(
             key.get_secret_value(), "[CLAVE_OCULTA]",
         )
@@ -121,13 +158,20 @@ def request_structured_response(
         elif exc.code == 429:
             status, code = 503, "ASSISTANT_UNAVAILABLE"
             message = "Gemini alcanzó su cuota o límite de solicitudes. Revisa los límites del proyecto."
+        elif exc.code == 503:
+            status, code = 503, "ASSISTANT_UNAVAILABLE"
+            message = "Gemini está temporalmente saturado. Espera unos segundos y vuelve a intentarlo."
         elif exc.code in (408, 504):
             status, code = 504, "UPSTREAM_TIMEOUT"
             message = "Gemini tardó demasiado. Intenta nuevamente."
         else:
             status, code = 502, "UPSTREAM_ERROR"
             message = "Gemini rechazó la solicitud. Revisa el modelo configurado y su disponibilidad."
-        raise AssistantFailure(status, code, message) from exc
+        raise AssistantFailure(
+            status, code, message,
+            retryable=exc.code in (429, 503) and not daily_quota and (retry_hint is None or retry_hint < 180),
+            retry_after_seconds=(retry_hint if retry_hint is not None else 10 if exc.code == 429 else 3) if exc.code in (429, 503) else None,
+        ) from exc
     except (ValidationError, ValueError) as exc:
         raise AssistantFailure(
             502, "UPSTREAM_ERROR", "La respuesta de Gemini no cumplió el formato esperado.",

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, Image, Loader2, MessageSquare, Mic, Send, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Image, MessageSquare, Mic, Send, Sparkles, X } from 'lucide-react';
 import { clsx } from 'clsx';
-import { apiClient } from '../../services/api-client';
-import type { AnalysisRequest, AnalysisResponse, AssistantResponse } from '../../services/generated/types';
+import { ApiClientError, apiClient } from '../../services/api-client';
+import type { AnalysisRequest, AnalysisResponse, AssistantMessageRequest, AssistantResponse } from '../../services/generated/types';
+import { AssistantRequestStatus } from './AssistantRequestStatus';
 import { DraftReviewCard } from './DraftReviewCard';
 import { ImageExtractorUploader } from './ImageExtractorUploader';
 import { VoiceRecorderControl } from './VoiceRecorderControl';
@@ -44,15 +45,18 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [errorKind, setErrorKind] = useState<'service' | 'draft'>('service');
+  const [errorKind, setErrorKind] = useState<'service' | 'draft' | 'delay'>('service');
   const [failedText, setFailedText] = useState('');
+  const [pendingInput, setPendingInput] = useState<'text' | 'image'>('text');
+  const controller = useRef<AbortController | null>(null);
+  const failedRequest = useRef<AssistantMessageRequest | null>(null);
   const nextId = useRef(1);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const focusExample = useRef(false);
   const history = useRef<HTMLDivElement>(null);
   const alive = useRef(true);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; controller.current?.abort(); }; }, []);
   useEffect(() => { if (isOpen) closeButton.current?.focus(); }, [isOpen]);
   useEffect(() => {
     if (focusExample.current && tab === 'text') { textarea.current?.focus(); focusExample.current = false; }
@@ -65,23 +69,36 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
     setMessages((previous) => [...previous, { id, role: 'assistant', text: response.reply_message, response, draftStatus: 'pending' }]);
   }
 
-  async function sendMessage(message: string) {
+  async function sendMessage(message: string, retryPayload?: AssistantMessageRequest) {
     if (!message.trim() || busy) return;
+    const requestController = new AbortController();
+    controller.current = requestController;
+    const payload = retryPayload ?? {
+      message, history: messages.filter((entry) => entry.id !== 0).slice(-10).map((entry) => ({ role: entry.role, content: entry.text.slice(0, 4000) })),
+      current_draft: structuredClone(currentDraft), current_result: currentResult ? structuredClone(currentResult) : null,
+    };
+    failedRequest.current = payload;
+    setPendingInput('text');
     setBusy(true); setError(''); setErrorKind('service'); setFailedText(''); setText('');
-    const id = nextId.current++;
-    setMessages((previous) => [...previous, { id, role: 'user', text: message }]);
+    if (!retryPayload) {
+      const id = nextId.current++;
+      setMessages((previous) => [...previous, { id, role: 'user', text: message }]);
+    }
     try {
-      const response = await apiClient.sendAssistantMessage({
-        message, history: messages.filter((entry) => entry.id !== 0).slice(-10).map((entry) => ({ role: entry.role, content: entry.text.slice(0, 4000) })), current_draft: structuredClone(currentDraft),
-        current_result: currentResult ? structuredClone(currentResult) : null,
-      });
+      const response = await apiClient.sendAssistantMessage(payload, { signal: requestController.signal });
+      if (requestController.signal.aborted) return;
       addResponse(response);
     } catch (cause) {
       if (alive.current) {
+        if (requestController.signal.aborted) { setText(message); return; }
+        setErrorKind(cause instanceof ApiClientError && cause.code === 'retry_exhausted' ? 'delay' : 'service');
         setError(cause instanceof Error ? cause.message : 'No pudimos interpretar el mensaje. Vuelve a intentarlo.');
         setFailedText(message);
       }
-    } finally { if (alive.current) setBusy(false); }
+    } finally {
+      if (controller.current === requestController) controller.current = null;
+      if (alive.current) setBusy(false);
+    }
   }
 
   function updateDraftStatus(id: number, draftStatus: 'applied' | 'discarded') {
@@ -129,12 +146,12 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
           {message.draftStatus === 'discarded' && <p className="text-xs text-slate-500">Propuesta descartada. El formulario conserva tus datos.</p>}
         </article>)}
       </div>
-      {busy && <p role="status" className="flex shrink-0 items-center gap-2 px-4 py-2 text-xs text-indigo-800"><Loader2 size={15} aria-hidden="true" className="animate-spin motion-reduce:animate-none" />Interpretando datos...</p>}
-      {error && <div role="alert" className="mx-3 mb-3 shrink-0 space-y-2 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs leading-5 text-rose-800">
-        <p className="flex items-start gap-1.5 font-semibold"><AlertTriangle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />{errorKind === 'service' ? 'Error del servicio de IA — Puedes seguir usando el formulario manual' : 'Revisa los datos antes de aplicar la propuesta'}</p>
+      <AssistantRequestStatus pending={busy} label={pendingInput === 'image' ? 'Analizando fotografía...' : 'Interpretando datos...'} onCancel={pendingInput === 'text' ? () => controller.current?.abort() : undefined} />
+      {error && <div role={errorKind === 'delay' ? 'status' : 'alert'} className={clsx('mx-3 mb-3 shrink-0 space-y-2 rounded-lg border p-3 text-xs leading-5', errorKind === 'delay' ? 'border-indigo-200 bg-indigo-50 text-indigo-950' : 'border-rose-200 bg-rose-50 text-rose-800')}>
+        <p className="flex items-start gap-1.5 font-semibold">{errorKind !== 'delay' && <AlertTriangle size={15} aria-hidden="true" className="mt-0.5 shrink-0" />}{errorKind === 'delay' ? 'Tu solicitud está guardada' : errorKind === 'service' ? 'Error del servicio de IA — Puedes seguir usando el formulario manual' : 'Revisa los datos antes de aplicar la propuesta'}</p>
         <p>{error}</p><div className="flex gap-3">
-          {failedText && <button type="button" disabled={busy} onClick={() => void sendMessage(failedText)} className="font-semibold underline">Reintentar mensaje</button>}
-          <button type="button" onClick={() => { setError(''); setFailedText(''); }} className="underline">Cerrar alerta</button>
+          {failedText && <button type="button" disabled={busy} onClick={() => void sendMessage(failedText, failedRequest.current ?? undefined)} className="font-semibold underline">Reintentar mensaje</button>}
+          <button type="button" onClick={() => { setError(''); setFailedText(''); }} className="underline">{errorKind === 'delay' ? 'Cerrar aviso' : 'Cerrar alerta'}</button>
         </div>
       </div>}
       <div className="max-h-[48%] shrink-0 overflow-y-auto border-t border-slate-200 bg-slate-50/70 p-3">
@@ -158,10 +175,11 @@ export function AssistantPanel({ isOpen, onClose, currentDraft, currentResult, o
         </div>
         <div role="tabpanel" id="assistant-input-image" aria-labelledby="assistant-tab-image" hidden={tab !== 'image'}>
           <ImageExtractorUploader currentDraft={currentDraft} disabled={busy} onRequestStart={(filename) => {
+            setPendingInput('image');
             setBusy(true); setError(''); setErrorKind('service'); setFailedText('');
             const id = nextId.current++;
             setMessages((previous) => [...previous, { id, role: 'user', text: `Fotografía: ${filename}` }]);
-          }} onResponse={addResponse} onRequestEnd={() => { if (alive.current) setBusy(false); }} onError={(message) => { if (alive.current) setError(message); }} />
+          }} onResponse={addResponse} onRequestEnd={() => { if (alive.current) setBusy(false); }} onError={(message, delayed) => { if (alive.current) { setError(message); setErrorKind(delayed ? 'delay' : 'service'); } }} />
         </div>
         <div role="tabpanel" id="assistant-input-voice" aria-labelledby="assistant-tab-voice" hidden={tab !== 'voice'}>
           <VoiceRecorderControl onSendReviewedText={sendMessage} disabled={busy} isActive={tab === 'voice'} />

@@ -153,6 +153,7 @@ def test_empty_provider_response_is_controlled(recording, fake_gemini):
     (404, 502, 'UPSTREAM_ERROR'),
     (429, 503, 'ASSISTANT_UNAVAILABLE'),
     (500, 502, 'UPSTREAM_ERROR'),
+    (503, 503, 'ASSISTANT_UNAVAILABLE'),
     (408, 504, 'UPSTREAM_TIMEOUT'),
     (504, 504, 'UPSTREAM_TIMEOUT'),
 ])
@@ -163,8 +164,34 @@ def test_provider_errors_are_controlled(provider_status, http_status, code, reco
     response = upload(recording)
     assert response.status_code == http_status
     assert response.json()['error']['code'] == code
+    if provider_status == 503:
+        assert 'temporalmente saturado' in response.json()['error']['message']
+    assert response.json()['error']['retryable'] is (provider_status in (429, 503))
+    if provider_status in (429, 503):
+        assert int(response.headers['retry-after']) > 0
     assert 'test-only' not in response.text
     assert 'test-only' not in caplog.text
+
+
+@pytest.mark.parametrize('error_data,delay,retryable', [
+    ({'message': 'Try later', 'details': [
+        {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '35.2s'},
+    ]}, 36, True),
+    ({'message': 'Daily limit', 'details': [
+        {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier'}]},
+    ]}, 86400, False),
+    ({'message': 'Please retry in 9h20m53.21s.'}, 33654, False),
+    ({'message': 'Wait', 'details': [
+        {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '3600s'},
+    ]}, 3600, False),
+])
+def test_retry_hints_distinguish_short_limits_from_daily_quota(error_data, delay, retryable, recording, fake_gemini):
+    fake_gemini.models.generate_content.side_effect = errors.APIError(429, {'error': error_data})
+    response = upload(recording)
+    assert response.status_code == 503
+    assert response.json()['error']['retryable'] is retryable
+    assert response.json()['error']['retry_after_seconds'] == delay
+    assert response.headers['retry-after'] == str(delay)
 
 
 @pytest.mark.parametrize('failure,status,code', [

@@ -1,0 +1,15 @@
+{
+  "live_provider": true,
+  "statuses": [
+    503,
+    503,
+    503,
+    503,
+    503
+  ],
+  "automatic_retries": 4,
+  "slow_notice_seen": true,
+  "draft_received": false,
+  "manual_demand_unchanged": true,
+  "user_message_count": 1
+}

@@ -1,0 +1,15 @@
+{
+  "url": "http://localhost:5173/",
+  "checked_at": "2026-10-15T14:40:05.725Z",
+  "test_type": "fallos controlados y respuestas de fixture, no proveedor real",
+  "checks": [
+    "texto: aviso de demora, sin alerta de saturación y calculadora disponible",
+    "texto: tres intentos automáticos, mismo contexto y una sola burbuja",
+    "fotografia: aviso de demora, sin alerta de saturación y calculadora disponible",
+    "foto: se conserva el archivo y su nota en los tres intentos",
+    "audio: aviso de demora, sin alerta de saturación y calculadora disponible",
+    "audio: mismo archivo en los tres intentos; transcripción revisable y envío exacto por Texto",
+    "cancelación: conserva el texto y detiene los reintentos"
+  ],
+  "page_errors": []
+}

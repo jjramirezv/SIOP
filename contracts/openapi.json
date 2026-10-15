@@ -440,7 +440,7 @@
             }
           },
           "503": {
-            "description": "Asistente no configurado.",
+            "description": "Asistente no configurado o temporalmente no disponible.",
             "content": {
               "application/json": {
                 "schema": {
@@ -532,7 +532,7 @@
             }
           },
           "503": {
-            "description": "Asistente no configurado.",
+            "description": "Asistente no configurado o temporalmente no disponible.",
             "content": {
               "application/json": {
                 "schema": {
@@ -625,7 +625,7 @@
             }
           },
           "503": {
-            "description": "Asistente no configurado.",
+            "description": "Asistente no configurado o temporalmente no disponible.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1389,6 +1389,24 @@
             },
             "type": "array",
             "title": "Details"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable",
+            "default": false
+          },
+          "retry_after_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 86400.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry After Seconds"
           }
         },
         "additionalProperties": false,

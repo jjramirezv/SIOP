@@ -25,6 +25,25 @@
           },
           "title": "Details",
           "type": "array"
+        },
+        "retryable": {
+          "default": false,
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "maximum": 86400,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry After Seconds"
         }
       },
       "required": [

@@ -4,6 +4,8 @@
 
 Plataforma web de apoyo a decisiones de compra mediante el modelo de cantidad económica de pedido con descuentos por cantidad y un asistente por texto, fotografía y voz.
 
+**Para probar el proyecto después de clonarlo:** sigue la [guía breve de instalación y ejecución](docs/ejecucion-local.md). Las dependencias Python se instalan desde la raíz con `pip install -r requirements.txt`; las del frontend, con `npm ci` en `apps/web/`.
+
 | Ficha del proyecto | Definición |
 | --- | --- |
 | Equipo de desarrollo | Jelibeth y Ruben |
@@ -11,7 +13,7 @@ Plataforma web de apoyo a decisiones de compra mediante el modelo de cantidad ec
 | Fecha objetivo | 14 de octubre de 2026, hora de Lima |
 | Duración de planificación | 3 horas y 45 minutos desde el inicio del trabajo |
 | Método de organización | Sprint de un día con backlog priorizado, responsables, criterios de aceptación y revisión final |
-| Estado | Calculadora integrada y probada; validación con Gemini pendiente de credenciales |
+| Estado | Calculadora e IA probadas con servicios reales; saturación intermitente de Gemini |
 
 > Las secciones de backlog conservan el plan original del sprint. La estructura actual está en la sección 9 y el arranque comprobado en la sección 13. El cierre real y sus limitaciones están en [docs/integracion-backend-frontend.md](docs/integracion-backend-frontend.md).
 
@@ -505,7 +507,7 @@ Requisitos comprobados: Python 3.12, Node.js 22 y npm 10; Google Chrome para el 
 ```powershell
 python -m venv apps/api/.venv
 apps/api/.venv/Scripts/python.exe -m pip install -r apps/api/requirements.txt
-if (-not (Test-Path -LiteralPath apps/api/.env)) {
+if (-not (Test-Path -LiteralPath .env) -and -not (Test-Path -LiteralPath apps/api/.env)) {
     Copy-Item -LiteralPath apps/api/.env.example -Destination apps/api/.env
 }
 apps/api/.venv/Scripts/python.exe -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000 --reload
@@ -513,7 +515,7 @@ apps/api/.venv/Scripts/python.exe -m uvicorn app.main:app --app-dir apps/api --h
 
 Salud: `http://127.0.0.1:8000/api/v1/health`. Documentación interactiva: `http://127.0.0.1:8000/docs`.
 
-La calculadora funciona sin credenciales de IA. Para texto, fotografías y transcripciones, configurar en `apps/api/.env` las variables `GEMINI_API_KEY` y `GEMINI_TEXT_MODEL` con la clave y el modelo disponibles para el equipo; reiniciar la API. No ponerlas en el frontend ni versionarlas. La configuración del sistema tiene prioridad sobre los archivos `.env`; el archivo de `apps/api/` tiene prioridad sobre un `.env` heredado de la raíz.
+La calculadora funciona sin credenciales de IA. Para texto, fotografías y transcripciones, configurar en `.env` de la raíz o en `apps/api/.env` las variables `GEMINI_API_KEY` y `GEMINI_TEXT_MODEL` con la clave y el modelo disponibles para el equipo; reiniciar la API. No ponerlas en el frontend ni versionarlas. Si ya existe el `.env` de la raíz con esas variables, evitar copiar encima una configuración vacía en `apps/api/.env`. La configuración del sistema tiene prioridad sobre los archivos `.env`; el archivo de `apps/api/` tiene prioridad sobre un `.env` heredado de la raíz.
 
 `ai_available` indica que existen clave y modelo configurados; no confirma acceso, cuota o permisos del proveedor. Sin configuración, los endpoints del asistente devuelven un error 503 recuperable y la calculadora sigue disponible.
 
@@ -562,7 +564,26 @@ npm run test:e2e
 
 Cambiar `SIOP_REVIEW_URL` si Vite ofrece otro puerto. El recorrido usa Google Chrome instalado, no intercepta las solicitudes y guarda su informe y capturas en `apps/web/design/evidencia/`. Para instalar Chrome si no está disponible: `npx playwright install chrome`.
 
-Verificación final: **147 pruebas de backend**, **111 de frontend**, **15 comprobaciones del navegador**, instalación reproducible y build con cero errores o avisos de TypeScript. La evidencia cubre cálculo real, cuatro referencias, demanda arbitraria, equivalencia mensual, sensibilidad, diseño adaptable, MediaRecorder y errores 503 sin credenciales. Interpretación y transcripción exitosas con Gemini, hardware físico y comparación con WinQSB permanecen pendientes de validación. Los avisos de dependencias se detallan en el [registro de integración](docs/integracion-backend-frontend.md).
+Verificación actual: **152 pruebas de backend**, **127 de frontend**, **15 comprobaciones del navegador de integración** y **7 comprobaciones adicionales de espera con fallos controlados**, instalación reproducible y build con cero errores o avisos de TypeScript. La evidencia cubre cálculo real, cuatro referencias, demanda arbitraria, equivalencia mensual, sensibilidad, diseño adaptable, MediaRecorder y errores 503 sin credenciales. Texto, fotografía y transcripción ya devolvieron respuestas reales de Gemini; hubo errores 503 intermitentes por alta demanda. El hardware físico y la comparación con WinQSB permanecen pendientes de validación. Los avisos de dependencias se detallan en el [registro de integración](docs/integracion-backend-frontend.md).
+
+### Espera del asistente
+
+Texto, fotografía y audio reintentan automáticamente los fallos temporales conservando lo enviado. A los ocho segundos aparece «Esto puede demorar más de lo esperado». Se puede cancelar la espera y seguir usando la calculadora. La política tiene un máximo de cinco intentos dentro de tres minutos; después conserva la solicitud en memoria con una opción de reintento, sin pedir otra vez los datos.
+
+Si Gemini comunica cuota diaria agotada o una pausa de varias horas, se conserva la solicitud sin repetir llamadas inútiles. La clave sigue siendo válida, pero una carga prolongada no restablece la cuota. Los errores de configuración o de archivos siguen mostrándose de forma recuperable.
+
+Prueba de interfaz con fallos controlados y sin consumo de IA, desde la raíz con ambos servidores iniciados: `node tests/e2e/espera-asistente.cjs`. Evidencia y detalles en [pruebas-gemini.md](docs/pruebas-gemini.md).
+
+### Comprobación explícita con Gemini
+
+Con la API y Vite iniciados, desde la raíz:
+
+```powershell
+$env:SIOP_RUN_LIVE_AI='1'
+node tests/e2e/asistente-gemini-real.cjs
+```
+
+Este comando realiza llamadas reales que consumen la cuota del proyecto. Usa la cotización y el WAV hablado de `tests/e2e/fixtures/`; no lee ni registra la clave. Puede fallar por saturación del proveedor, aunque la configuración sea válida. Ver [las pruebas con credenciales](docs/pruebas-gemini.md) y sus respuestas, capturas y limitaciones.
 
 ## 14. Referencias técnicas
 
